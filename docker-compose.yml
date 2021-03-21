@@ -1,0 +1,12 @@
+version: '3.5'
+services:
+
+  bot_app:
+    image: php:8-apache
+    volumes:
+      - "./src:/var/www/html"
+      - "./data:/var/www/data"
+      - "./config:/var/www/config"
+    ports:
+      - "80:80"
+      - "443:443"
