@@ -3,15 +3,23 @@
 namespace PokerBot;
 
 use PokerBot\Lib\DotEnv;
+use PokerBot\Lib\Storage\UserStorage;
 
 require_once __DIR__ . '/Lib/DotEnv.php';
+require_once __DIR__ . '/Lib/Storage/UserStorage.php';
 
-DotEnv::load( __DIR__ . '/../config/.env');
+DotEnv::load(__DIR__ . '/../config/.env');
 
 if (strpos($_SERVER['HTTP_USER_AGENT'], 'akka-http') !== 0) {
     $data = callApi('https://chatapi.viber.com/pa/get_account_info');
-//    var_dump($data['members']);
-    var_dump($data->members);
+    $userStorage = new UserStorage();
+    $userStorage->updateUsers($data->members);
+    $text = 'Current users: ';
+    $users = $userStorage->getUsers();
+    foreach ($users as $key => $user) {
+        $text .= $user->name . (!empty($users[$key + 1]) ? ', ' : '.');
+    }
+    var_dump($text);
     var_dump('die');
     die();
 }
@@ -41,19 +49,26 @@ if ($input['event'] == 'webhook') {
 } elseif ($input['event'] == "conversation_started") {
     // when a conversation is started
 } elseif ($input['event'] == "message") {
+    $text = $input['message']['text'];
     if ($input['message']['text'] === 'refresh_users') {
-
+        $dataApp = callApi('https://chatapi.viber.com/pa/get_account_info');
+        $userStorage = new UserStorage();
+        $userStorage->updateUsers($dataApp->members);
+        $text = 'Current users: ';
+        $users = $userStorage->getUsers();
+        foreach ($users as $key => $user) {
+            $text .= $user->name . (!empty($users[$key + 1]) ? ', ' : '.');
+        }
     }
 
     /* when a user message is received */
-    $type = $input['message']['type']; //type of message received (text/picture)
-    $text = $input['message']['text']; //actual message the user has sent
-    $sender_id = $input['sender']['id']; //unique viber id of user who sent the message
-    $sender_name = $input['sender']['name']; //name of the user who sent the message
+    $type = $input['message']['type'];
+    $senderId = $input['sender']['id'];
+    $senderName = $input['sender']['name'];
 
-    $data['receiver'] = $sender_id;
+    $data['receiver'] = $senderId;
     $data['sender']['name'] = 'bot';
-    $data['text'] = "The message to send to user";
+    $data['text'] = $text;
     $data['type'] = 'text';
     $data['tracking_data'] = 'tracking_data';
     $data['min_api_version'] = 1;
@@ -82,7 +97,7 @@ function callApi(string $url, array $data = null)
     $header_size = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
     $header = substr($response, 0, $header_size);
     $body = substr($response, $header_size);
-//var_dump($response);
+
     return json_decode($response);
 }
 
