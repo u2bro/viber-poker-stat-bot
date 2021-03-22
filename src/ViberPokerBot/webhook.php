@@ -10,6 +10,16 @@ require_once __DIR__ . '/Lib/DotEnv.php';
 require_once __DIR__ . '/Lib/Storage/UserStorage.php';
 require_once __DIR__ . '/Lib/Logger.php';
 
+const COMMAND_REFRESH_USERS = '/refresh_users';
+const COMMAND_COMMANDS = '/commands';
+const COMMANDS_ADMIN = [
+    COMMAND_REFRESH_USERS,
+];
+const COMMANDS_REGULAR = [
+    COMMAND_COMMANDS,
+];
+
+
 DotEnv::load(__DIR__ . '/../../config/.env');
 
 if (strpos($_SERVER['HTTP_USER_AGENT'], 'akka-http') !== 0) {
@@ -18,7 +28,7 @@ if (strpos($_SERVER['HTTP_USER_AGENT'], 'akka-http') !== 0) {
     $userStorage->updateUsers($data->members);
     $text = 'Current users: ';
     $users = $userStorage->getUsers();
-    foreach ($users as $key => $user) {
+    foreach (array_values($users) as $key => $user) {
         $text .= $user->name . (!empty($users[$key + 1]) ? ', ' : '.');
     }
     var_dump($text);
@@ -47,21 +57,35 @@ if ($input['event'] == 'webhook') {
 } elseif ($input['event'] == "conversation_started") {
     // when a conversation is started
 } elseif ($input['event'] == "message") {
-    $text = $input['message']['text'];
-    if ($input['message']['text'] === 'refresh_users') {
-        $dataApp = callApi('https://chatapi.viber.com/pa/get_account_info');
-        $userStorage = new UserStorage();
-        $userStorage->updateUsers($dataApp->members);
-        $text = 'Current users: ';
-        $users = $userStorage->getUsers();
-        foreach ($users as $key => $user) {
-            $text .= $user->name . (!empty($users[$key + 1]) ? ', ' : '.');
+    $text = $input['message']['text'] ?? '';
+    $senderId = $input['sender']['id'] ?? null;
+    $userStorage = new UserStorage();
+    $isUserAdmin = $userStorage->isUserAdmin($senderId);
+    if ($isUserAdmin) {
+        if ($text === COMMAND_REFRESH_USERS) {
+            $dataApp = callApi('https://chatapi.viber.com/pa/get_account_info');
+
+            $userStorage->updateUsers($dataApp->members);
+            $text = 'Current users: ';
+            $users = $userStorage->getUsers();
+            foreach ($users as $key => $user) {
+                $text .= $user->name . (!empty($users[$key + 1]) ? ', ' : '.');
+            }
+        }
+    }
+    if ($text === COMMAND_COMMANDS) {
+        $commands = COMMANDS_REGULAR;
+        if ($isUserAdmin) {
+            $commands = array_merge($commands, COMMANDS_ADMIN);
+        }
+        $text = 'Available commands: ';
+        foreach ($commands as $key => $command) {
+            $text .= $command . (!empty($commands[$key + 1]) ? ', ' : '.');
         }
     }
 
     /* when a user message is received */
     $type = $input['message']['type'];
-    $senderId = $input['sender']['id'];
     $senderName = $input['sender']['name'];
 
     $data['receiver'] = $senderId;

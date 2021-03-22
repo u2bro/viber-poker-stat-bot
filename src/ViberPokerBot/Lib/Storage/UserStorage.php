@@ -59,4 +59,15 @@ class UserStorage extends Storage
         return true;
     }
 
+    public function isUserAdmin($id)
+    {
+        $users = $this->getUsers();
+        foreach ($users as $user) {
+            if ($user->id === $id) {
+                return $user->role === 'admin';
+            }
+        }
+
+        return false;
+    }
 }
