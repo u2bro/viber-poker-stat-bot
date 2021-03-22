@@ -274,13 +274,18 @@ if ($input['event'] === 'webhook') {
             }
         }
         if ($text === COMMAND_BROADCAST) {
+            if (!isSupperAdmin($senderId)) {
+                $data['text'] = '*Error* : this command allowed only for superadmins';
+                callApi('https://chatapi.viber.com/pa/send_message', $data);
+                die();
+            }
             $data['text'] = "Send broadcast message";
             $data['type'] = 'text';
             $data['tracking_data'] = TRACK_BROADCAST;
             callApi('https://chatapi.viber.com/pa/send_message', $data);
             die();
         }
-        if ($track === COMMAND_BROADCAST) {
+        if ($track === TRACK_BROADCAST) {
             $data['text'] = $input['message']['text'];
             $data['type'] = 'text';
             $data['broadcast_list'] = $userStorage->getUserIds();
