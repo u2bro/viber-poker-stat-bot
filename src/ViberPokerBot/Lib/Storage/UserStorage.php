@@ -6,6 +6,8 @@ require_once 'Storage.php';
 
 class UserStorage extends Storage
 {
+    public const ROLE_ADMIN = 'admin';
+    public const ROLE_USER = 'user';
     protected function getFilePath(): string
     {
         return static::STORAGE_PATH . 'users.json';
@@ -18,7 +20,7 @@ class UserStorage extends Storage
 
     public function getUsers()
     {
-        return (array)@json_decode(file_get_contents($this->getFilePath(), true));
+        return array_values((array)@json_decode(file_get_contents($this->getFilePath(), true)));
     }
 
     public function updateUser($newUser)
@@ -79,7 +81,7 @@ class UserStorage extends Storage
         $users = $this->getUsers();
         foreach ($users as $user) {
             if ($user->id === $id) {
-                return $user->role === 'admin';
+                return $user->role === static::ROLE_ADMIN;
             }
         }
 
@@ -94,6 +96,26 @@ class UserStorage extends Storage
             if ($id === $user->id) {
                 $userExist = true;
                 $users[$key]->isSubscribed = $isSubscribed;
+                break;
+            }
+        }
+        if (!$userExist) {
+            return false;
+        }
+
+        $this->storeUsersToFile($users);
+
+        return true;
+    }
+
+    public function setRole(string $id = null, string $role = self::ROLE_USER): bool
+    {
+        $userExist = false;
+        $users = $this->getUsers();
+        foreach ($users as $key => $user) {
+            if ($id === $user->id) {
+                $userExist = true;
+                $users[$key]->role = $role;
                 break;
             }
         }
