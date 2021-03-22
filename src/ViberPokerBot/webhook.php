@@ -24,6 +24,7 @@ const COMMAND_ADMINS = 'admins';
 const COMMAND_ADMIN_ADD = 'admin-add';
 const COMMAND_ADMIN_REMOVE = 'admin-remove';
 const COMMAND_COMMANDS = 'commands';
+const COMMAND_STAT = 'stat';
 const COMMAND_USERS = 'users';
 const COMMAND_USERS_SUB = 'users-sub';
 const COMMANDS_ADMIN = [
@@ -38,6 +39,7 @@ const COMMANDS_REGULAR = [
     COMMAND_COMMANDS,
     COMMAND_ADMINS,
     COMMAND_USERS,
+    COMMAND_STAT,
 ];
 
 
@@ -185,6 +187,9 @@ if ($input['event'] === 'webhook') {
                 $dataC['broadcast_list'] = $userIds;
                 $dataC['text'] = "{$step} place: " . ($user->name ?? 'none');
                 $dataC['sender']['name'] = 'bot';
+                if ($user) {
+                    $dataC['sender']['avatar'] = $user->avatar;
+                }
                 callApi('https://chatapi.viber.com/pa/broadcast_message', $dataC);
 
 
@@ -301,6 +306,29 @@ if ($input['event'] === 'webhook') {
         foreach ($users as $key => $user) {
             $text .= $user->name . (!empty($users[$key + 1]) ? ', ' : '.');
         }
+    }
+    if ($text === COMMAND_STAT) {
+        $data['text'] = 'Full stat: ';
+        callApi('https://chatapi.viber.com/pa/send_message', $data);
+        $results = [];
+        foreach ($resultStorage->getResults() as $result) {
+            if (!empty($results[$result->userId]['score'])) {
+                $results[$result->userId]['score'] += 4 - (int)$result->place;
+                continue;
+            }
+            $results[$result->userId]['score'] = 4 - (int)$result->place;
+        }
+
+        foreach ($results as $key => $result) {
+            $user = $userStorage->getUser($key);
+            if (!$user) {
+                continue;
+            }
+            $data['sender']['avatar'] = $user->avatar;
+            $data['text'] = $user->name . ' - ' . $result['score'] . ' points.';
+            callApi('https://chatapi.viber.com/pa/send_message', $data);
+        }
+        die();
     }
     if ($track === TRACK_SUBSCRIBE) {
         $newUse = new \stdClass();
