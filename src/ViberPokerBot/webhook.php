@@ -45,7 +45,7 @@ Logger::log(($_SERVER ? 'Server: ' . json_encode($_SERVER) . PHP_EOL : '')
     . ($_GET ? 'Get: ' . json_encode($_GET) . PHP_EOL : '')
     . ($request ? 'Input: ' . $request . PHP_EOL : ''));
 
-
+$userStorage = new UserStorage();
 if ($input['event'] == 'webhook') {
     $webhook_response['status'] = 0;
     $webhook_response['status_message'] = "ok";
@@ -55,13 +55,18 @@ if ($input['event'] == 'webhook') {
 } elseif ($input['event'] == "subscribed") {
     // when a user subscribes to the public account
 } elseif ($input['event'] == "conversation_started") {
-    // when a conversation is started
+    $newUse = new \stdClass();
+    $newUse->id = $input['sender']['id'] ?? null;
+    $newUse->name = $input['sender']['id'] ?? null;
+    $newUse->avatar = $input['sender']['id'] ?? null;
+    $newUse->role = 'user';
+    $newUse->isSubscribed = false;
+    $userStorage->addUser($newUse);
 } elseif ($input['event'] == "message") {
     $text = $input['message']['text'] ?? '';
     $senderId = $input['sender']['id'] ?? null;
-    $userStorage = new UserStorage();
-    $isUserAdmin = $userStorage->isUserAdmin($senderId);
-    if ($isUserAdmin) {
+    $isAdmin = $userStorage->isUserAdmin($senderId);
+    if ($isAdmin) {
         if ($text === COMMAND_REFRESH_USERS) {
             $dataApp = callApi('https://chatapi.viber.com/pa/get_account_info');
 
@@ -75,7 +80,7 @@ if ($input['event'] == 'webhook') {
     }
     if ($text === COMMAND_COMMANDS) {
         $commands = COMMANDS_REGULAR;
-        if ($isUserAdmin) {
+        if ($isAdmin) {
             $commands = array_merge($commands, COMMANDS_ADMIN);
         }
         $text = 'Available commands: ';

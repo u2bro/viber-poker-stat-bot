@@ -24,9 +24,15 @@ class UserStorage extends Storage
     public function addUser($newUser)
     {
         $users = $this->getUsers();
-        foreach ($users as $user) {
+        foreach ($users as $key => $user) {
             if ($newUser->id === $user->id) {
-                return false;
+                //user already exist and isSubscribed is equal
+                if (($user->isSubscribed ?? null) === $newUser->isSubscribed) {
+                    return false;
+                }
+
+                unset($users[$key]);
+                break;
             }
         }
         $users[] = $newUser;
@@ -36,13 +42,19 @@ class UserStorage extends Storage
     }
 
 
-    public function updateUsers($newUsers)
+    public function updateUsers($newUsers, bool $isSubscribed = true)
     {
         $users = $this->getUsers();
         foreach ($users as $user) {
             foreach ($newUsers as $key => $newUser) {
+                $newUser->isSubscribed = $isSubscribed;
                 if ($newUser->id === $user->id) {
-                    unset($newUsers[$key]);
+                    unset($users[$key]);
+                    if (($user->isSubscribed ?? null) === $newUser->isSubscribed) {
+                        unset($newUsers[$key]);
+                    } else {
+                        unset($users[$key]);
+                    }
                 }
             }
             if (!$newUsers) {
