@@ -1,5 +1,11 @@
 <?php
 
+use ViberPokerBot\Lib\DotEnv;
+
+require_once __DIR__ . '/Lib/DotEnv.php';
+
+DotEnv::load(__DIR__ . '/../../config/.env');
+
 $fp = fopen('webhook.log', 'ab');
 fwrite($fp, date('y.m.d H:m:s:')
     . ($_SERVER ? 'Server: ' . json_encode($_SERVER) . PHP_EOL : '')
@@ -12,8 +18,7 @@ fclose($fp);
 
 
 $url = 'https://chatapi.viber.com/pa/set_webhook';
-
-$jsonData='{ "auth_token": "4d13c2261327d154-cd50f8782a515ec8-76c699f54b4e475c", "url": "https://coronamatter.com/webhook.php" }';
+$jsonData = '{ "auth_token": "' . getenv('VIBER_AUTH_TOKEN') . '", "url": "https://coronamatter.com/ViberPokerBot/webhook.php" }';
 
 $ch = curl_init($url);
 curl_setopt($ch, CURLOPT_POST, 1);
