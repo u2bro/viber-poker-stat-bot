@@ -147,7 +147,7 @@ if ($input['event'] === 'webhook') {
                     $data['text'] = $user->name . ' admin_' . (strpos($text, COMMAND_ADMIN_ADD) === 0 ? 'add:' : 'remove:') . $user->id;
                     callApi('https://chatapi.viber.com/pa/send_message', $data);
                 }
-
+                die();
             }
             $res = $userStorage->setRole($id, strpos($text, COMMAND_ADMIN_ADD) === 0 ? UserStorage::ROLE_ADMIN : UserStorage::ROLE_USER);
             if ($res) {
