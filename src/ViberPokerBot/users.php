@@ -2,7 +2,7 @@
 
 namespace PokerBot;
 
-use PokerBot\Lib\Storage\UserStorage;
+use ViberPokerBot\Lib\Storage\UserStorage;
 
 require_once __DIR__ . '/Lib/Storage/UserStorage.php';
 

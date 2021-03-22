@@ -1,14 +1,14 @@
 <?php
 
-namespace PokerBot;
+namespace ViberPokerBot;
 
-use PokerBot\Lib\DotEnv;
-use PokerBot\Lib\Storage\UserStorage;
+use ViberPokerBot\Lib\DotEnv;
+use ViberPokerBot\Lib\Storage\UserStorage;
 
 require_once __DIR__ . '/Lib/DotEnv.php';
 require_once __DIR__ . '/Lib/Storage/UserStorage.php';
 
-DotEnv::load(__DIR__ . '/../config/.env');
+DotEnv::load(__DIR__ . '/../../config/.env');
 
 if (strpos($_SERVER['HTTP_USER_AGENT'], 'akka-http') !== 0) {
     $data = callApi('https://chatapi.viber.com/pa/get_account_info');

@@ -1,6 +1,6 @@
 <?php
 
-namespace PokerBot\Lib;
+namespace ViberPokerBot\Lib;
 
 class DotEnv
 {

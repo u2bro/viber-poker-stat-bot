@@ -1,6 +1,6 @@
 <?php
 
-namespace PokerBot\Lib\Storage;
+namespace ViberPokerBot\Lib\Storage;
 
 require_once 'Storage.php';
 
