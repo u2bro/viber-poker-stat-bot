@@ -21,7 +21,7 @@ class UserStorage extends Storage
         return (array)@json_decode(file_get_contents($this->getFilePath(), true));
     }
 
-    public function addUser($newUser)
+    public function updateUser($newUser)
     {
         if (empty($newUser->id)) {
             return false;
@@ -33,7 +33,7 @@ class UserStorage extends Storage
                 if (($user->isSubscribed ?? null) === $newUser->isSubscribed || ($user->isSubscribed ?? null)) {
                     return false;
                 }
-
+                $newUser->role = $user->role;
                 unset($users[$key]);
                 break;
             }
@@ -45,7 +45,7 @@ class UserStorage extends Storage
     }
 
 
-    public function updateUsers($newUsers, bool $isSubscribed = true)
+    public function updateUsers(array $newUsers, bool $isSubscribed = true): bool
     {
         $users = $this->getUsers();
         foreach ($users as $user) {
@@ -74,7 +74,7 @@ class UserStorage extends Storage
         return true;
     }
 
-    public function isUserAdmin($id)
+    public function isUserAdmin(string $id = null): bool
     {
         $users = $this->getUsers();
         foreach ($users as $user) {
@@ -84,5 +84,25 @@ class UserStorage extends Storage
         }
 
         return false;
+    }
+
+    public function setSubscribe(string $id = null, bool $isSubscribed = true): bool
+    {
+        $userExist = false;
+        $users = $this->getUsers();
+        foreach ($users as $key => $user) {
+            if ($id === $user->id) {
+                $userExist = true;
+                $users[$key]->isSubscribed = $isSubscribed;
+                break;
+            }
+        }
+        if (!$userExist) {
+            return false;
+        }
+
+        $this->storeUsersToFile($users);
+
+        return true;
     }
 }

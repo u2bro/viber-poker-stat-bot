@@ -10,6 +10,8 @@ require_once __DIR__ . '/Lib/DotEnv.php';
 require_once __DIR__ . '/Lib/Storage/UserStorage.php';
 require_once __DIR__ . '/Lib/Logger.php';
 
+const TRACK_SUBSCRIBE = 'subscribe';
+
 const COMMAND_REFRESH_USERS = '/refresh_users';
 const COMMAND_COMMANDS = '/commands';
 const COMMANDS_ADMIN = [
@@ -23,15 +25,9 @@ const COMMANDS_REGULAR = [
 DotEnv::load(__DIR__ . '/../../config/.env');
 
 if (strpos($_SERVER['HTTP_USER_AGENT'], 'akka-http') !== 0) {
-    $data = callApi('https://chatapi.viber.com/pa/get_account_info');
     $userStorage = new UserStorage();
-    $userStorage->updateUsers($data->members);
-    $text = 'Current users: ';
-    $users = $userStorage->getUsers();
-    foreach (array_values($users) as $key => $user) {
-        $text .= $user->name . (!empty($users[$key + 1]) ? ', ' : '.');
-    }
-    var_dump($text);
+    $r = $userStorage->setSubscribe('tmDjqEPjuuBVmaKm9+hr\/A==', false);
+    var_dump($r);
     var_dump('die');
     die();
 }
@@ -53,7 +49,15 @@ if ($input['event'] == 'webhook') {
     echo json_encode($webhook_response);
     die;
 } elseif ($input['event'] == "subscribed") {
-    // when a user subscribes to the public account
+    $newUse = new \stdClass();
+    $newUse->id = $input['user']['id'] ?? null;
+    $newUse->name = $input['user']['name'] ?? null;
+    $newUse->avatar = $input['user']['avatar'] ?? null;
+    $newUse->role = 'user';
+    $newUse->isSubscribed = true;
+    $userStorage->updateUser($newUse);
+} elseif ($input['event'] == "unsubscribed") {
+    $userStorage->setSubscribe($input['user_id'], false);
 } elseif ($input['event'] == "conversation_started") {
     $newUse = new \stdClass();
     $newUse->id = $input['user']['id'] ?? null;
@@ -61,7 +65,7 @@ if ($input['event'] == 'webhook') {
     $newUse->avatar = $input['user']['avatar'] ?? null;
     $newUse->role = 'user';
     $newUse->isSubscribed = false;
-    $userStorage->addUser($newUse);
+    $userStorage->updateUser($newUse);
     $data['receiver'] = $newUse->id;
     $data['sender']['name'] = 'bot';
     $data['text'] = "Welcome to the Poker Uzh bot!\n\n*Send any message* to start conversation and see list of available commands.";
@@ -80,12 +84,13 @@ if ($input['event'] == 'webhook') {
         "BgColor" => "#665CAC",
         "Rows" => 2
     ]];
-    $data['tracking_data'] = 'conversation_started';
+    $data['tracking_data'] = TRACK_SUBSCRIBE;
     $data['min_api_version'] = 1;
     jsonResponse($data);
     die();
 } elseif ($input['event'] == "message") {
     $text = $input['message']['text'] ?? '';
+    $track = $input['message']['tracking_data'] ?? '';
     $senderId = $input['sender']['id'] ?? null;
     $isAdmin = $userStorage->isUserAdmin($senderId);
     if ($isAdmin) {
@@ -99,6 +104,15 @@ if ($input['event'] == 'webhook') {
                 $text .= $user->name . (!empty($users[$key + 1]) ? ', ' : '.');
             }
         }
+    }
+    if ($track === TRACK_SUBSCRIBE) {
+        $newUse = new \stdClass();
+        $newUse->id = $input['sender']['id'] ?? null;
+        $newUse->name = $input['sender']['name'] ?? null;
+        $newUse->avatar = $input['sender']['avatar'] ?? null;
+        $newUse->role = 'user';
+        $newUse->isSubscribed = true;
+        $userStorage->updateUser($newUse);
     }
 
     if ($text === $input['message']['text'] ?? '') {
