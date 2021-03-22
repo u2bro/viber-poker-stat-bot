@@ -8,6 +8,7 @@ class UserStorage extends Storage
 {
     public const ROLE_ADMIN = 'admin';
     public const ROLE_USER = 'user';
+
     protected function getFilePath(): string
     {
         return static::STORAGE_PATH . 'users.json';
@@ -18,12 +19,57 @@ class UserStorage extends Storage
         file_put_contents($this->getFilePath(), json_encode($users, JSON_THROW_ON_ERROR));
     }
 
-    public function getUsers()
+    public function getUsers(): array
     {
         return array_values((array)@json_decode(file_get_contents($this->getFilePath(), true)));
     }
 
-    public function updateUser($newUser)
+    public function getUser($id)
+    {
+        foreach ($this->getUsers() as $user) {
+            if ($user->id === $id) {
+                return $user;
+            }
+        }
+
+        return null;
+    }
+
+    public function getSubscribedUsers(): array
+    {
+        $users = [];
+        foreach ($this->getUsers() as $user) {
+            if ($user->isSubscribed) {
+                $users[] = $user;
+            }
+        }
+
+        return $users;
+    }
+
+    public function getUserIds()
+    {
+        $ids = [];
+        foreach ($this->getUsers() as $user) {
+            $ids[] = $user->id;
+        }
+
+        return $ids;
+    }
+
+    public function getSubscribedUserIds()
+    {
+        $ids = [];
+        foreach ($this->getUsers() as $user) {
+            if ($user->isSubscribed) {
+                $ids[] = $user->id;
+            }
+        }
+
+        return $ids;
+    }
+
+    public function updateUser(object $newUser): bool
     {
         if (empty($newUser->id)) {
             return false;

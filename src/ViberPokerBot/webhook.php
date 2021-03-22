@@ -4,26 +4,35 @@ namespace ViberPokerBot;
 
 use ViberPokerBot\Lib\DotEnv;
 use ViberPokerBot\Lib\Logger;
+use ViberPokerBot\Lib\Storage\ResultStorage;
 use ViberPokerBot\Lib\Storage\UserStorage;
 
 require_once __DIR__ . '/Lib/DotEnv.php';
+require_once __DIR__ . '/Lib/Storage/ResultStorage.php';
 require_once __DIR__ . '/Lib/Storage/UserStorage.php';
 require_once __DIR__ . '/Lib/Logger.php';
 
 const TRACK_SUBSCRIBE = 'subscribe';
+const TRACK_SET = 'set';
+const TRACK_BROADCAST = 'broadcast';
 
 const COMMAND_REFRESH_MEMBERS = 'refresh-members';
+const COMMAND_BROADCAST = 'broadcast';
+const COMMAND_SET = 'set';
 const COMMAND_IDS = 'ids';
 const COMMAND_ADMINS = 'admins';
 const COMMAND_ADMIN_ADD = 'admin-add';
 const COMMAND_ADMIN_REMOVE = 'admin-remove';
 const COMMAND_COMMANDS = 'commands';
 const COMMAND_USERS = 'users';
+const COMMAND_USERS_SUB = 'users-sub';
 const COMMANDS_ADMIN = [
+    COMMAND_SET,
     COMMAND_IDS,
     COMMAND_REFRESH_MEMBERS,
     COMMAND_ADMIN_ADD,
     COMMAND_ADMIN_REMOVE,
+    COMMAND_USERS_SUB
 ];
 const COMMANDS_REGULAR = [
     COMMAND_COMMANDS,
@@ -52,6 +61,7 @@ Logger::log(($_SERVER ? 'Server: ' . json_encode($_SERVER) . PHP_EOL : '')
     . ($request ? 'Input: ' . $request . PHP_EOL : ''));
 
 $userStorage = new UserStorage();
+$resultStorage = new ResultStorage();
 if ($input['event'] === 'webhook') {
     $webhook_response['status'] = 0;
     $webhook_response['status_message'] = "ok";
@@ -110,6 +120,92 @@ if ($input['event'] === 'webhook') {
     $data['tracking_data'] = 'tracking_data';
     $data['min_api_version'] = 1;
     if ($isAdmin) {
+        if ($text === COMMAND_SET) {
+            $data['text'] = "Set 1 place.";
+            $data['type'] = 'text';
+            $data['keyboard']['Type'] = 'keyboard';
+            $data['keyboard']['InputFieldState'] = 'hidden';
+            $buttons = getSetButtons($userStorage);
+            $data['keyboard']['Buttons'] = $buttons;
+            $data['tracking_data'] = TRACK_SET;
+            callApi('https://chatapi.viber.com/pa/send_message', $data);
+            die();
+        }
+        if (strpos($track, TRACK_SET) === 0) {
+            $setId = $input['message']['text'] ?? '';
+            $excludeIds = explode(':', $track);
+            unset($excludeIds[0]);
+            $nextStep = count($excludeIds) + 2;
+            if ($nextStep > 4 && ($setId === 'none' || strpos($setId, '==') !== false)) {
+                $data['text'] = "Done!";
+                $data['type'] = 'text';
+                callApi('https://chatapi.viber.com/pa/send_message', $data);
+                die();
+            }
+            if ($nextStep < 5 && ($setId === 'none' || strpos($setId, '==') !== false)) {
+                $user = $userStorage->getUser($setId);
+                if (!$user && $setId !== 'none') {
+                    $data['text'] = "*Error* : user with id {$setId} not found";
+                    callApi('https://chatapi.viber.com/pa/send_message', $data);
+                    die();
+                }
+                $step = $nextStep - 1;
+
+                if ($user) {
+                    $result = new \stdClass();
+                    $result->userId = $user->id;
+                    $result->userName = $user->name;
+                    $result->place = $step;
+                    $result->adminId = $senderId;
+                    $result->adminName = $input['sender']['name'] ?? '';
+                    $result->date = time();
+                    $resultStorage->addResult($result);
+                }
+                $userIds = $userStorage->getUserIds();
+                if (($key = array_search($senderId, $userIds)) !== false) {
+                    unset($userIds[$key]);
+                }
+                $userIds = array_values($userIds);
+
+                if ($step === 1) {
+                    $dataB['type'] = 'sticker';
+                    $dataB['sticker_id'] = 99610;
+                    $dataB['broadcast_list'] = $userIds;
+                    $dataB['sender']['name'] = 'bot';
+                    callApi('https://chatapi.viber.com/pa/broadcast_message', $dataB);
+                    $dataF['type'] = 'text';
+                    $dataF['broadcast_list'] = $userIds;
+                    $dataF['text'] = "Game over, congratulations champions!";
+                    $dataF['sender']['name'] = 'bot';
+                    callApi('https://chatapi.viber.com/pa/broadcast_message', $dataF);
+                }
+
+
+                $dataC['type'] = 'text';
+                $dataC['broadcast_list'] = $userIds;
+                $dataC['text'] = "{$step} place: " . ($user->name ?? 'none');
+                $dataC['sender']['name'] = 'bot';
+                callApi('https://chatapi.viber.com/pa/broadcast_message', $dataC);
+
+
+                if ($step === 3) {
+                    $data['text'] = "Done!";
+                    $data['type'] = 'text';
+                    callApi('https://chatapi.viber.com/pa/send_message', $data);
+                    die();
+                }
+
+                $data['text'] = "Set {$nextStep} place.";
+                $data['keyboard']['Type'] = 'keyboard';
+                $data['keyboard']['InputFieldState'] = 'hidden';
+                $excludeIds[] = $setId;
+                $buttons = getSetButtons($userStorage, $excludeIds);
+                $data['keyboard']['Buttons'] = $buttons;
+                $data['tracking_data'] = TRACK_SET . ':' . implode(':', $excludeIds);
+                callApi('https://chatapi.viber.com/pa/send_message', $data);
+                die();
+            }
+        }
         if ($text === COMMAND_REFRESH_MEMBERS) {
             $dataApp = callApi('https://chatapi.viber.com/pa/get_account_info');
 
@@ -120,7 +216,7 @@ if ($input['event'] === 'webhook') {
             }
         }
         if ($text === COMMAND_IDS) {
-            if(!isSupperAdmin($senderId)) {
+            if (!isSupperAdmin($senderId)) {
                 $data['text'] = '*Error* : this command allowed only for superadmins';
                 callApi('https://chatapi.viber.com/pa/send_message', $data);
                 die();
@@ -134,7 +230,7 @@ if ($input['event'] === 'webhook') {
             die();
         }
         if (strpos($text, COMMAND_ADMIN_ADD) === 0 || strpos($text, COMMAND_ADMIN_REMOVE) === 0) {
-            if(!isSupperAdmin($senderId)) {
+            if (!isSupperAdmin($senderId)) {
                 $data['text'] = '*Error* : this command allowed only for superadmins';
                 callApi('https://chatapi.viber.com/pa/send_message', $data);
                 die();
@@ -144,7 +240,7 @@ if ($input['event'] === 'webhook') {
                 $data['text'] = 'User ids: ';
                 callApi('https://chatapi.viber.com/pa/send_message', $data);
                 foreach ($userStorage->getUsers() as $key => $user) {
-                    $data['text'] = $user->name . ' admin_' . (strpos($text, COMMAND_ADMIN_ADD) === 0 ? 'add:' : 'remove:') . $user->id;
+                    $data['text'] = $user->name . ' admin-' . (strpos($text, COMMAND_ADMIN_ADD) === 0 ? 'add:' : 'remove:') . $user->id;
                     callApi('https://chatapi.viber.com/pa/send_message', $data);
                 }
                 die();
@@ -164,6 +260,27 @@ if ($input['event'] === 'webhook') {
             } else {
                 $text = 'Not found user with id: ' . $id;
             }
+        }
+        if ($text === COMMAND_USERS_SUB) {
+            $text = 'Users: ';
+            $users = $userStorage->getSubscribedUsers();
+            foreach ($users as $key => $user) {
+                $text .= $user->name . (!empty($users[$key + 1]) ? ', ' : '.');
+            }
+        }
+        if ($text === COMMAND_BROADCAST) {
+            $data['text'] = "Send broadcast message";
+            $data['type'] = 'text';
+            $data['tracking_data'] = TRACK_BROADCAST;
+            callApi('https://chatapi.viber.com/pa/send_message', $data);
+            die();
+        }
+        if ($track === COMMAND_BROADCAST) {
+            $data['text'] = $input['message']['text'];
+            $data['type'] = 'text';
+            $data['broadcast_list'] = $userStorage->getUserIds();
+            callApi('https://chatapi.viber.com/pa/broadcast_message', $data);
+            die();
         }
     }
     if ($text === COMMAND_ADMINS) {
@@ -250,6 +367,79 @@ function isSupperAdmin(string $id = null): bool
         }
     }
     return false;
+}
+
+function getSetButtons(UserStorage $userStorage, array $excludeIds = []): array
+{
+    $buttons = [];
+    $users = $userStorage->getUsers();
+    if ($excludeIds) {
+        $users = array_filter($users, function ($element) use ($excludeIds) {
+            return !in_array($element->id, $excludeIds, true);
+        });
+    }
+    $count = count($users) + 1;
+    usort($users, function ($a, $b) {
+        return $a->name <=> $b->name;
+    });
+
+    $buttonNone = [
+        "Text" => "<font color='#FFFFFF' size='32'>None</font>",
+        "TextHAlign" => "center",
+        "TextVAlign" => "middle",
+        "ActionType" => "reply",
+        "TextSize" => "large",
+        "ActionBody" => 'none',
+        "BgColor" => "#665CAC",
+        "Columns" => 6
+    ];
+    if ($count > 24) {
+        $buttonNone['Columns'] = 3;
+    } elseif ($count > 48) {
+        $buttonNone['Columns'] = 2;
+    } elseif ($count > 72) {
+        $buttonNone['Columns'] = 1;
+    }
+    $buttons[] = $buttonNone;
+
+    foreach ($users as $user) {
+        $buttonImage = [
+            "Text" => "",
+            "TextHAlign" => "center",
+            "TextVAlign" => "middle",
+            "ActionType" => "reply",
+            "TextSize" => "large",
+            "ActionBody" => $user->id,
+            "BgColor" => "#665CAC",
+            "Image" => $user->avatar,
+            "Columns" => 1
+        ];
+        $button = [
+            "Text" => "<font color='#FFFFFF' size='32'>{$user->name}</font>",
+            "TextHAlign" => "center",
+            "TextVAlign" => "middle",
+            "ActionType" => "reply",
+            "TextSize" => "large",
+            "ActionBody" => $user->id,
+            "BgColor" => "#665CAC",
+            "Columns" => 5
+        ];
+        if ($count > 24) {
+            $button['Columns'] = 2;
+        }
+        if ($count > 48) {
+            $button['Columns'] = 1;
+        }
+        if ($count > 72) {
+            $buttons[] = $buttonImage;
+            continue;
+        }
+
+        $buttons[] = $buttonImage;
+        $buttons[] = $button;
+    }
+
+    return $buttons;
 }
 
 //"subscribed",
