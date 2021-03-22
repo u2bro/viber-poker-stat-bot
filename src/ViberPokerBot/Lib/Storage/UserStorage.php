@@ -23,11 +23,14 @@ class UserStorage extends Storage
 
     public function addUser($newUser)
     {
+        if (empty($newUser->id)) {
+            return false;
+        }
         $users = $this->getUsers();
         foreach ($users as $key => $user) {
             if ($newUser->id === $user->id) {
                 //user already exist and isSubscribed is equal
-                if (($user->isSubscribed ?? null) === $newUser->isSubscribed) {
+                if (($user->isSubscribed ?? null) === $newUser->isSubscribed || ($user->isSubscribed ?? null)) {
                     return false;
                 }
 

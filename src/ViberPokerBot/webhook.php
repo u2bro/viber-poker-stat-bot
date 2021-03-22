@@ -56,12 +56,34 @@ if ($input['event'] == 'webhook') {
     // when a user subscribes to the public account
 } elseif ($input['event'] == "conversation_started") {
     $newUse = new \stdClass();
-    $newUse->id = $input['sender']['id'] ?? null;
-    $newUse->name = $input['sender']['id'] ?? null;
-    $newUse->avatar = $input['sender']['id'] ?? null;
+    $newUse->id = $input['user']['id'] ?? null;
+    $newUse->name = $input['user']['id'] ?? null;
+    $newUse->avatar = $input['user']['id'] ?? null;
     $newUse->role = 'user';
     $newUse->isSubscribed = false;
     $userStorage->addUser($newUse);
+    $data['receiver'] = $newUse->id;
+    $data['sender']['name'] = 'bot';
+    $data['text'] = "Welcome to the Poker Uzh bot!\n\n*Send any message* to start conversation and see list of available commands.";
+    $data['type'] = 'text';
+    $data['keyboard']['Type'] = 'keyboard';
+//    $data['keyboard']['DefaultHeight'] = true;
+    $data['keyboard']['BgColor'] = '#665CAC';
+    $data['keyboard']['InputFieldState'] = 'hidden';
+    $data['keyboard']['Buttons'] = [[
+        "Text" => '<font color="#FFFFFF" size=”32”><b>Press</b> to start conversation!</font>',
+        "TextHAlign" => "center",
+        "TextVAlign" => "middle",
+        "ActionType" => "reply",
+        "TextSize" => "large",
+        "ActionBody" => "conversation_started",
+        "BgColor" => "#665CAC",
+        "Rows" => 2
+    ]];
+    $data['tracking_data'] = 'conversation_started';
+    $data['min_api_version'] = 1;
+    jsonResponse($data);
+    die();
 } elseif ($input['event'] == "message") {
     $text = $input['message']['text'] ?? '';
     $senderId = $input['sender']['id'] ?? null;
@@ -78,7 +100,8 @@ if ($input['event'] == 'webhook') {
             }
         }
     }
-    if ($text === COMMAND_COMMANDS) {
+
+    if ($text === $input['message']['text'] ?? '') {
         $commands = COMMANDS_REGULAR;
         if ($isAdmin) {
             $commands = array_merge($commands, COMMANDS_ADMIN);
@@ -103,6 +126,13 @@ if ($input['event'] == 'webhook') {
     callApi('https://chatapi.viber.com/pa/send_message', $data);
 }
 
+function jsonResponse(array $data)
+{
+    header('Content-Type: application/json');
+    header('X-Viber-Auth-Token: ' . getenv('VIBER_AUTH_TOKEN'));
+    echo json_encode($data);
+}
+
 function callApi(string $url, array $data = null)
 {
     $ch = curl_init($url);
@@ -111,7 +141,7 @@ function callApi(string $url, array $data = null)
     if ($data) {
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
     }
-    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json', "X-Viber-Auth-Token: " . getenv('VIBER_AUTH_TOKEN')]);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json', 'X-Viber-Auth-Token: ' . getenv('VIBER_AUTH_TOKEN')]);
     $response = curl_exec($ch);
     $err = curl_error($ch);
     curl_close($ch);
