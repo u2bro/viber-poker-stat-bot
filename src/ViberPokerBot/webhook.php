@@ -57,8 +57,8 @@ if ($input['event'] == 'webhook') {
 } elseif ($input['event'] == "conversation_started") {
     $newUse = new \stdClass();
     $newUse->id = $input['user']['id'] ?? null;
-    $newUse->name = $input['user']['id'] ?? null;
-    $newUse->avatar = $input['user']['id'] ?? null;
+    $newUse->name = $input['user']['name'] ?? null;
+    $newUse->avatar = $input['user']['avatar'] ?? null;
     $newUse->role = 'user';
     $newUse->isSubscribed = false;
     $userStorage->addUser($newUse);
