@@ -328,6 +328,11 @@ if ($input['event'] === 'webhook') {
             $results[$result->userId]['score'] = 4 - (int)$result->place;
         }
 
+        if (!$result) {
+            $data['text'] = 'Stat is empty yet.';
+            callApi('https://chatapi.viber.com/pa/send_message', $data);
+        }
+
         foreach ($results as $key => $result) {
             $user = $userStorage->getUser($key);
             if (!$user) {
