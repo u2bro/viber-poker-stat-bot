@@ -256,6 +256,11 @@ if ($input['event'] === 'webhook') {
             }
             $res = $userStorage->setRole($id, strpos($text, COMMAND_ADMIN_ADD) === 0 ? UserStorage::ROLE_ADMIN : UserStorage::ROLE_USER);
             if ($res) {
+                $adminName = $input['sender']['name'] ?? 'Admin';
+                $data['text'] = $adminName . (strpos($text, COMMAND_ADMIN_ADD) === 0 ? ' give you admin permissions.' : ' remove your admin permissions.');
+                $data['receiver'] = $id;
+                callApi('https://chatapi.viber.com/pa/send_message', $data);
+                $data['receiver'] = $senderId;
                 $text = 'Done. Current admins: ';
                 $admins = [];
                 foreach ($userStorage->getUsers() as $user) {
