@@ -42,6 +42,10 @@ const COMMANDS_REGULAR = [
     COMMAND_STAT,
 ];
 
+const STICKER_IDS_WIN = [
+    99610, 88023, 40127, 87609, 36917, 13918, 105812, 36913, 13906, 21617, 87614, 87602
+];
+
 
 DotEnv::load(__DIR__ . '/../../config/.env');
 
@@ -171,13 +175,13 @@ if ($input['event'] === 'webhook') {
 
                 if ($step === 1) {
                     $dataB['type'] = 'sticker';
-                    $dataB['sticker_id'] = 99610;
+                    $dataB['sticker_id'] = STICKER_IDS_WIN[array_rand(STICKER_IDS_WIN)];
                     $dataB['broadcast_list'] = $userIds;
                     $dataB['sender']['name'] = 'bot';
                     callApi('https://chatapi.viber.com/pa/broadcast_message', $dataB);
                     $dataF['type'] = 'text';
                     $dataF['broadcast_list'] = $userIds;
-                    $dataF['text'] = "Game over, congratulations champions!";
+                    $dataF['text'] = "Game over. Congratulations to the winners!";
                     $dataF['sender']['name'] = 'bot';
                     callApi('https://chatapi.viber.com/pa/broadcast_message', $dataF);
                 }
