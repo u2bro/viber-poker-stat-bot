@@ -18,6 +18,7 @@ const TRACK_BROADCAST = 'broadcast';
 
 const COMMAND_REFRESH_MEMBERS = 'refresh-members';
 const COMMAND_BROADCAST = 'broadcast';
+const COMMAND_WIN = 'win';
 const COMMAND_SET = 'set';
 const COMMAND_IDS = 'ids';
 const COMMAND_ADMINS = 'admins';
@@ -40,6 +41,7 @@ const COMMANDS_REGULAR = [
     COMMAND_ADMINS,
     COMMAND_USERS,
     COMMAND_STAT,
+    COMMAND_WIN,
 ];
 
 const STICKER_IDS_WIN = [
@@ -365,6 +367,42 @@ if ($input['event'] === 'webhook') {
             }
             $data['sender']['avatar'] = $user->avatar;
             $data['text'] = $user->name . ' - ' . $result['score'] . ' points.';
+            callApi('https://chatapi.viber.com/pa/send_message', $data);
+        }
+        die();
+    }
+    if ($text === COMMAND_WIN) {
+        $data['text'] = 'Wins stat: ';
+        callApi('https://chatapi.viber.com/pa/send_message', $data);
+        $results = [];
+        foreach ($resultStorage->getResults() as $result) {
+            if ($result->place !== 1) {
+                continue;
+            }
+            if (!empty($results[$result->userId]['score'])) {
+                $results[$result->userId]['score'] += 1;
+                continue;
+            }
+            $results[$result->userId]['score'] = 1;
+            $results[$result->userId]['userId'] = $result->userId;
+        }
+
+        if (!$result) {
+            $data['text'] = 'Stat is empty yet.';
+            callApi('https://chatapi.viber.com/pa/send_message', $data);
+        }
+
+        usort($results, function ($a, $b) {
+            return $b['score'] <=> $a['score'];
+        });
+
+        foreach ($results as $result) {
+            $user = $userStorage->getUser($result['userId']);
+            if (!$user) {
+                continue;
+            }
+            $data['sender']['avatar'] = $user->avatar;
+            $data['text'] = $user->name . ' won - ' . $result['score'] . ($result['score']  === 1 ? ' time.' : ' times.');
             callApi('https://chatapi.viber.com/pa/send_message', $data);
         }
         die();
