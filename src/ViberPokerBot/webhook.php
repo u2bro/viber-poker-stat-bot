@@ -50,10 +50,25 @@ const STICKER_IDS_WIN = [
 DotEnv::load(__DIR__ . '/../../config/.env');
 
 if (strpos($_SERVER['HTTP_USER_AGENT'], 'akka-http') !== 0) {
-    $userStorage = new UserStorage();
-    $r = $userStorage->setSubscribe('tmDjqEPjuuBVmaKm9+hr\/A==', false);
-    var_dump($r);
-    var_dump('die');
+    $resultStorage = new ResultStorage();
+    $results = [];
+    foreach ($resultStorage->getResults() as $result) {
+        if (!empty($results[$result->userId]['score'])) {
+            $results[$result->userId]['score'] += 4 - (int)$result->place;
+            continue;
+        }
+        $results[$result->userId]['score'] = 4 - (int)$result->place;
+    }
+
+    if (!$result) {
+        $data['text'] = 'Stat is empty yet.';
+        callApi('https://chatapi.viber.com/pa/send_message', $data);
+    }
+
+    usort($results, function ($a, $b) {
+        return $a['score'] <=> $b['score'];
+    });
+//    var_dump($results);
     die();
 }
 
@@ -331,6 +346,7 @@ if ($input['event'] === 'webhook') {
                 continue;
             }
             $results[$result->userId]['score'] = 4 - (int)$result->place;
+            $results[$result->userId]['userId'] = $result->userId;
         }
 
         if (!$result) {
@@ -338,8 +354,12 @@ if ($input['event'] === 'webhook') {
             callApi('https://chatapi.viber.com/pa/send_message', $data);
         }
 
-        foreach ($results as $key => $result) {
-            $user = $userStorage->getUser($key);
+        usort($results, function ($a, $b) {
+            return $b['score'] <=> $a['score'];
+        });
+
+        foreach ($results as $result) {
+            $user = $userStorage->getUser($result['userId']);
             if (!$user) {
                 continue;
             }
