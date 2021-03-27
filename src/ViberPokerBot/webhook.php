@@ -19,6 +19,8 @@ const TRACK_BROADCAST = 'broadcast';
 const COMMAND_REFRESH_MEMBERS = 'refresh-members';
 const COMMAND_BROADCAST = 'broadcast';
 const COMMAND_WIN = 'win';
+const COMMAND_RESULTS = 'results';
+const COMMAND_RESULT = 'result';
 const COMMAND_SET = 'set';
 const COMMAND_IDS = 'ids';
 const COMMAND_ADMINS = 'admins';
@@ -42,6 +44,7 @@ const COMMANDS_REGULAR = [
     COMMAND_USERS,
     COMMAND_STAT,
     COMMAND_WIN,
+    COMMAND_RESULTS,
 ];
 
 const STICKER_IDS_WIN = [
@@ -55,22 +58,29 @@ if (strpos($_SERVER['HTTP_USER_AGENT'], 'akka-http') !== 0) {
     $resultStorage = ResultStorage::getInstance();
     $results = [];
     foreach ($resultStorage->getResults() as $result) {
-        if (!empty($results[$result->userId]['score'])) {
-            $results[$result->userId]['score'] += 4 - (int)$result->place;
+        if (!empty($results[$result->userId][$result->place])) {
+            $results[$result->userId][$result->place] += 1;
             continue;
         }
-        $results[$result->userId]['score'] = 4 - (int)$result->place;
-    }
-
-    if (!$result) {
-        $data['text'] = 'Stat is empty yet.';
-        callApi('https://chatapi.viber.com/pa/send_message', $data);
+        $results[$result->userId][$result->place] = 1;
+        $results[$result->userId]['userId'] = $result->userId;
     }
 
     usort($results, function ($a, $b) {
-        return $a['score'] <=> $b['score'];
+        return ($b[1] ?? 0) <=> ($a[1] ?? 0);
     });
-//    var_dump($results);
+    $userStorage = UserStorage::getInstance();
+    foreach ($results as $result) {
+        $user = $userStorage->getUser($result['userId']);
+        if (!$user) {
+            continue;
+        }
+        $data['sender']['avatar'] = $user->avatar;
+        $data['text'] = $user->name . ' 1 place: ' . ($result[1] ?? 0) . ', 2 place: ' . ($result[2] ?? 0) . ', 3 place: ' . ($result[3] ?? 0) . '.';
+        var_dump($results);
+//        callApi('https://chatapi.viber.com/pa/send_message', $data);
+    }
+    var_dump($results);
     die();
 }
 
@@ -403,6 +413,39 @@ if ($input['event'] === 'webhook') {
             }
             $data['sender']['avatar'] = $user->avatar;
             $data['text'] = $user->name . ' won - ' . $result['score'] . ($result['score']  === 1 ? ' time.' : ' times.');
+            callApi('https://chatapi.viber.com/pa/send_message', $data);
+        }
+        die();
+    }
+    if ($text === COMMAND_RESULTS || $text === COMMAND_RESULT) {
+        $data['text'] = 'Results: ';
+        callApi('https://chatapi.viber.com/pa/send_message', $data);
+        $results = [];
+        foreach ($resultStorage->getResults() as $result) {
+            if (!empty($results[$result->userId][$result->place])) {
+                $results[$result->userId][$result->place] += 1;
+                continue;
+            }
+            $results[$result->userId][$result->place] = 1;
+            $results[$result->userId]['userId'] = $result->userId;
+        }
+
+        if (!$result) {
+            $data['text'] = 'Stat is empty yet.';
+            callApi('https://chatapi.viber.com/pa/send_message', $data);
+        }
+
+        usort($results, function ($a, $b) {
+            return ($b[1] ?? 0) <=> ($a[1] ?? 0);
+        });
+
+        foreach ($results as $result) {
+            $user = $userStorage->getUser($result['userId']);
+            if (!$user) {
+                continue;
+            }
+            $data['sender']['avatar'] = $user->avatar;
+            $data['text'] = $user->name . "\n 1 place: " . ($result[1] ?? 0) . ",\n 2 place: " . ($result[2] ?? 0) . ",\n 3 place: " . ($result[3] ?? 0) . '.';
             callApi('https://chatapi.viber.com/pa/send_message', $data);
         }
         die();
