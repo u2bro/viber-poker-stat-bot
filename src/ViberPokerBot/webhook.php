@@ -77,10 +77,10 @@ if (strpos($_SERVER['HTTP_USER_AGENT'], 'akka-http') !== 0) {
         }
         $data['sender']['avatar'] = $user->avatar;
         $data['text'] = $user->name . ' 1 place: ' . ($result[1] ?? 0) . ', 2 place: ' . ($result[2] ?? 0) . ', 3 place: ' . ($result[3] ?? 0) . '.';
-        var_dump($results);
+//        var_dump($results);
 //        callApi('https://chatapi.viber.com/pa/send_message', $data);
     }
-    var_dump($results);
+//    var_dump($results);
     die();
 }
 
@@ -250,6 +250,9 @@ if ($input['event'] === 'webhook') {
             foreach ($dataApp->members as $key => $user) {
                 $text .= $user->name . (!empty($dataApp->members[$key + 1]) ? ', ' : '.');
             }
+            $data['text'] = $text;
+            callApi('https://chatapi.viber.com/pa/send_message', $data);
+            die();
         }
         if ($text === COMMAND_IDS) {
             if (!isSupperAdmin($senderId)) {
@@ -301,6 +304,9 @@ if ($input['event'] === 'webhook') {
             } else {
                 $text = 'Not found user with id: ' . $id;
             }
+            $data['text'] = $text;
+            callApi('https://chatapi.viber.com/pa/send_message', $data);
+            die();
         }
         if ($text === COMMAND_USERS_SUB) {
             $text = 'Users: ';
@@ -308,6 +314,9 @@ if ($input['event'] === 'webhook') {
             foreach ($users as $key => $user) {
                 $text .= $user->name . (!empty($users[$key + 1]) ? ', ' : '.');
             }
+            $data['text'] = $text;
+            callApi('https://chatapi.viber.com/pa/send_message', $data);
+            die();
         }
         if ($text === COMMAND_BROADCAST) {
             if (!isSupperAdmin($senderId)) {
@@ -340,6 +349,9 @@ if ($input['event'] === 'webhook') {
         foreach ($admins as $key => $admin) {
             $text .= $admin->name . (!empty($admins[$key + 1]) ? ', ' : '.');
         }
+        $data['text'] = $text;
+        callApi('https://chatapi.viber.com/pa/send_message', $data);
+        die();
     }
     if ($text === COMMAND_USERS) {
         $text = 'Users: ';
@@ -347,6 +359,9 @@ if ($input['event'] === 'webhook') {
         foreach ($users as $key => $user) {
             $text .= $user->name . (!empty($users[$key + 1]) ? ', ' : '.');
         }
+        $data['text'] = $text;
+        callApi('https://chatapi.viber.com/pa/send_message', $data);
+        die();
     }
     if ($text === COMMAND_STAT) {
         $data['text'] = 'Full stat: ';
@@ -472,7 +487,6 @@ if ($input['event'] === 'webhook') {
     }
 
     $data['text'] = $text;
-
     callApi('https://chatapi.viber.com/pa/send_message', $data);
 }
 
