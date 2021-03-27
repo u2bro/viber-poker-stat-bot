@@ -14,7 +14,7 @@ $html .= '<th>Place</th>';
 $html .= '<th>Time</th>';
 $html .= '<th>Who added</th>';
 $html .= '</tr>';
-$resultStorage = new ResultStorage();
+$resultStorage = ResultStorage::getInstance();
 foreach ($resultStorage->getResults() as $result) {
     $html .= '<tr>';
     $html .= '<td>' . htmlspecialchars($result->userName) . '</td>';

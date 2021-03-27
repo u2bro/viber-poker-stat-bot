@@ -52,7 +52,7 @@ const STICKER_IDS_WIN = [
 DotEnv::load(__DIR__ . '/../../config/.env');
 
 if (strpos($_SERVER['HTTP_USER_AGENT'], 'akka-http') !== 0) {
-    $resultStorage = new ResultStorage();
+    $resultStorage = ResultStorage::getInstance();
     $results = [];
     foreach ($resultStorage->getResults() as $result) {
         if (!empty($results[$result->userId]['score'])) {
@@ -83,8 +83,8 @@ Logger::log(($_SERVER ? 'Server: ' . json_encode($_SERVER) . PHP_EOL : '')
     . ($_GET ? 'Get: ' . json_encode($_GET) . PHP_EOL : '')
     . ($request ? 'Input: ' . $request . PHP_EOL : ''));
 
-$userStorage = new UserStorage();
-$resultStorage = new ResultStorage();
+$userStorage = UserStorage::getInstance();
+$resultStorage = ResultStorage::getInstance();
 if ($input['event'] === 'webhook') {
     $webhook_response['status'] = 0;
     $webhook_response['status_message'] = "ok";
