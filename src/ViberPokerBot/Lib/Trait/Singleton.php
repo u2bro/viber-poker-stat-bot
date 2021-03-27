@@ -4,15 +4,16 @@ namespace ViberPokerBot\Lib\Trait;
 
 trait Singleton
 {
-    private static ?object $instance = null;
+    private static array $instances = [];
 
     public static function getInstance(): object
     {
-        if (static::$instance === null) {
-            static::$instance = new static();
+        $clasName = static::class;
+        if (!isset(self::$instances[$clasName])) {
+            self::$instances[$clasName] = new static();
         }
 
-        return static::$instance;
+        return self::$instances[$clasName];
     }
 
 }
