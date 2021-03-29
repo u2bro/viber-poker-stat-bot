@@ -13,7 +13,7 @@ class ResultStorage extends Storage
 
     public function addResult(object $newResult): bool
     {
-        $results = $this->getResults();
+        $results = $this->getAll();
         $results[] = $newResult;
         $this->storeResultsToFile($results);
 
@@ -28,5 +28,16 @@ class ResultStorage extends Storage
     public function getResults(): array
     {
         return array_values((array)@json_decode(file_get_contents($this->getFilePath(), true)));
+    }
+
+    public function getNextGameId(): int
+    {
+        $nextGameId = 1;
+        foreach ($this->getAll() as $result) {
+            if ((int)$result->gameId > $nextGameId) {
+                $nextGameId = (int)$result->gameId;
+            }
+        }
+        return $nextGameId;
     }
 }

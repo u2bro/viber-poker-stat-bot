@@ -26,7 +26,7 @@ class UserStorage extends Storage
 
     public function getUser($id)
     {
-        foreach ($this->getUsers() as $user) {
+        foreach ($this->getAll() as $user) {
             if ($user->id === $id) {
                 return $user;
             }
@@ -38,7 +38,7 @@ class UserStorage extends Storage
     public function getSubscribedUsers(): array
     {
         $users = [];
-        foreach ($this->getUsers() as $user) {
+        foreach ($this->getAll() as $user) {
             if ($user->isSubscribed) {
                 $users[] = $user;
             }
@@ -50,7 +50,7 @@ class UserStorage extends Storage
     public function getUserIds()
     {
         $ids = [];
-        foreach ($this->getUsers() as $user) {
+        foreach ($this->getAll() as $user) {
             $ids[] = $user->id;
         }
 
@@ -60,7 +60,7 @@ class UserStorage extends Storage
     public function getSubscribedUserIds()
     {
         $ids = [];
-        foreach ($this->getUsers() as $user) {
+        foreach ($this->getAll() as $user) {
             if ($user->isSubscribed) {
                 $ids[] = $user->id;
             }
@@ -74,7 +74,7 @@ class UserStorage extends Storage
         if (empty($newUser->id)) {
             return false;
         }
-        $users = $this->getUsers();
+        $users = $this->getAll();
         foreach ($users as $key => $user) {
             if ($newUser->id === $user->id) {
                 //user already exist and isSubscribed is equal
@@ -95,7 +95,7 @@ class UserStorage extends Storage
 
     public function updateUsers(array $newUsers, bool $isSubscribed = true): bool
     {
-        $users = $this->getUsers();
+        $users = $this->getAll();
         foreach ($users as $user) {
             foreach ($newUsers as $key => $newUser) {
                 $newUser->isSubscribed = $isSubscribed;
@@ -124,7 +124,7 @@ class UserStorage extends Storage
 
     public function isUserAdmin(string $id = null): bool
     {
-        $users = $this->getUsers();
+        $users = $this->getAll();
         foreach ($users as $user) {
             if ($user->id === $id) {
                 return $user->role === static::ROLE_ADMIN;
@@ -137,7 +137,7 @@ class UserStorage extends Storage
     public function setSubscribe(string $id = null, bool $isSubscribed = true): bool
     {
         $userExist = false;
-        $users = $this->getUsers();
+        $users = $this->getAll();
         foreach ($users as $key => $user) {
             if ($id === $user->id) {
                 $userExist = true;
@@ -157,7 +157,7 @@ class UserStorage extends Storage
     public function setRole(string $id = null, string $role = self::ROLE_USER): bool
     {
         $userExist = false;
-        $users = $this->getUsers();
+        $users = $this->getAll();
         foreach ($users as $key => $user) {
             if ($id === $user->id) {
                 $userExist = true;

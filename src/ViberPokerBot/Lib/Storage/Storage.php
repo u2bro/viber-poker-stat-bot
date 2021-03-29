@@ -15,4 +15,9 @@ abstract class Storage
     protected const STORAGE_PATH = __DIR__ . '/../../../../data/';
 
     abstract protected function getFilePath():string;
+
+    public function getAll(): array
+    {
+        return array_values((array)@json_decode(file_get_contents($this->getFilePath(), true)));
+    }
 }

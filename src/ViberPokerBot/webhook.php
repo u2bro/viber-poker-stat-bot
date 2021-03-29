@@ -61,7 +61,7 @@ DotEnv::load(__DIR__ . '/../../config/.env');
 if (strpos($_SERVER['HTTP_USER_AGENT'], 'akka-http') !== 0) {
     $resultStorage = ResultStorage::getInstance();
     $results = [];
-    foreach ($resultStorage->getResults() as $result) {
+    foreach ($resultStorage->getAll() as $result) {
         if (!empty($results[$result->userId][$result->place])) {
             $results[$result->userId][$result->place] += 1;
             continue;
@@ -97,7 +97,9 @@ Logger::log(($_SERVER ? 'Server: ' . json_encode($_SERVER) . PHP_EOL : '')
     . ($_GET ? 'Get: ' . json_encode($_GET) . PHP_EOL : '')
     . ($request ? 'Input: ' . $request . PHP_EOL : ''));
 
+/** @var UserStorage $userStorage */
 $userStorage = UserStorage::getInstance();
+/** @var ResultStorage $resultStorage */
 $resultStorage = ResultStorage::getInstance();
 $api = new ViberAPI();
 if ($input['event'] === 'webhook') {
@@ -165,7 +167,7 @@ if ($input['event'] === 'webhook') {
             $data['keyboard']['InputFieldState'] = 'hidden';
             $buttons = getSetButtons($userStorage);
             $data['keyboard']['Buttons'] = $buttons;
-            $data['tracking_data'] = TRACK_SET;
+            $data['tracking_data'] = TRACK_SET . '--' . $resultStorage->getNextGameId();
             $api->sendMessage($data);
             die();
         }
@@ -266,7 +268,7 @@ if ($input['event'] === 'webhook') {
             }
             $data['text'] = 'User ids: ';
             $api->sendMessage($data);
-            foreach ($userStorage->getUsers() as $key => $user) {
+            foreach ($userStorage->getAll() as $key => $user) {
                 $data['text'] = $user->name . ' ' . $user->id;
                 $api->sendMessage($data);
             }
@@ -282,7 +284,7 @@ if ($input['event'] === 'webhook') {
             if (!$id) {
                 $data['text'] = 'User ids: ';
                 $api->sendMessage($data);
-                foreach ($userStorage->getUsers() as $key => $user) {
+                foreach ($userStorage->getAll() as $key => $user) {
                     $data['text'] = $user->name . ' admin-' . (strpos($text, COMMAND_ADMIN_ADD) === 0 ? 'add:' : 'remove:') . $user->id;
                     $api->sendMessage($data);
                 }
@@ -297,7 +299,7 @@ if ($input['event'] === 'webhook') {
                 $data['receiver'] = $senderId;
                 $text = 'Done. Current admins: ';
                 $admins = [];
-                foreach ($userStorage->getUsers() as $user) {
+                foreach ($userStorage->getAll() as $user) {
                     if ($user->role === UserStorage::ROLE_ADMIN) {
                         $admins[] = $user;
                     }
@@ -345,7 +347,7 @@ if ($input['event'] === 'webhook') {
     if ($text === COMMAND_ADMINS) {
         $text = 'Admins: ';
         $admins = [];
-        foreach ($userStorage->getUsers() as $user) {
+        foreach ($userStorage->getAll() as $user) {
             if ($user->role === UserStorage::ROLE_ADMIN) {
                 $admins[] = $user;
             }
@@ -359,7 +361,7 @@ if ($input['event'] === 'webhook') {
     }
     if ($text === COMMAND_USERS) {
         $text = 'Users: ';
-        $users = $userStorage->getUsers();
+        $users = $userStorage->getAll();
         foreach ($users as $key => $user) {
             $text .= $user->name . (!empty($users[$key + 1]) ? ', ' : '.');
         }
@@ -371,7 +373,7 @@ if ($input['event'] === 'webhook') {
         $data['text'] = 'Full stat: ';
         $api->sendMessage($data);
         $results = [];
-        foreach ($resultStorage->getResults() as $result) {
+        foreach ($resultStorage->getAll() as $result) {
             if (!empty($results[$result->userId]['score'])) {
                 $results[$result->userId]['score'] += 4 - (int)$result->place;
                 continue;
@@ -404,7 +406,7 @@ if ($input['event'] === 'webhook') {
         $data['text'] = 'Wins stat: ';
         $api->sendMessage($data);
         $results = [];
-        foreach ($resultStorage->getResults() as $result) {
+        foreach ($resultStorage->getAll() as $result) {
             if ($result->place !== 1) {
                 continue;
             }
@@ -440,7 +442,7 @@ if ($input['event'] === 'webhook') {
         $data['text'] = 'Results: ';
         $api->sendMessage($data);
         $results = [];
-        foreach ($resultStorage->getResults() as $result) {
+        foreach ($resultStorage->getAll() as $result) {
             if (!empty($results[$result->userId][$result->place])) {
                 $results[$result->userId][$result->place] += 1;
                 continue;
@@ -473,7 +475,7 @@ if ($input['event'] === 'webhook') {
         $data['text'] = 'Games stat: ';
         $api->sendMessage($data);
         $games = [];
-        foreach ($resultStorage->getResults() as $result) {
+        foreach ($resultStorage->getAll() as $result) {
             if (!empty($games[$result->gameId])) {
                 $games[$result->gameId][$result->place] = $result->userName;
                 continue;
@@ -542,7 +544,7 @@ function isSupperAdmin(string $id = null): bool
 function getSetButtons(UserStorage $userStorage, array $excludeIds = []): array
 {
     $buttons = [];
-    $users = $userStorage->getUsers();
+    $users = $userStorage->getAll();
     if ($excludeIds) {
         $users = array_filter($users, function ($element) use ($excludeIds) {
             return !in_array($element->id, $excludeIds, true);

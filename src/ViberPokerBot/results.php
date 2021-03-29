@@ -16,7 +16,7 @@ $html .= '<th>Who added</th>';
 $html .= '<th>Game №</th>';
 $html .= '</tr>';
 $resultStorage = ResultStorage::getInstance();
-foreach ($resultStorage->getResults() as $result) {
+foreach ($resultStorage->getAll() as $result) {
     $html .= '<tr>';
     $html .= '<td>' . htmlspecialchars($result->userName) . '</td>';
     $html .= '<td>' . htmlspecialchars($result->place) . '</td>';

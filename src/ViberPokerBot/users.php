@@ -14,7 +14,7 @@ $html .= '<th>Role</th>';
 $html .= '<th>Is subscribed</th>';
 $html .= '</tr>';
 $userStorage = UserStorage::getInstance();
-foreach ($userStorage->getUsers() as $user) {
+foreach ($userStorage->getAll() as $user) {
     $html .= '<tr>';
     $html .= '<td>' . htmlspecialchars($user->name) . '</td>';
     $html .= '<td>' . htmlspecialchars($user->role) . '</td>';
