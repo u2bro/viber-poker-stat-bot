@@ -115,11 +115,20 @@ if ($input['event'] === 'webhook') {
     $newUse->id = $input['user']['id'] ?? null;
     $newUse->name = $input['user']['name'] ?? null;
     $newUse->avatar = $input['user']['avatar'] ?? null;
-    $newUse->role = UserStorage::ROLE_ADMIN;
+    $newUse->role = UserStorage::ROLE_USER;
     $newUse->isSubscribed = true;
     $userStorage->updateUser($newUse);
+    $dataS['receiver'] = getSupperAdminId();
+    $dataS['type'] = 'text';
+    $dataS['text'] = "New user subscribed -  {$newUse->name}";
+    $api->sendMessage($dataS);
 } elseif ($input['event'] === "unsubscribed") {
     $userStorage->setSubscribe($input['user_id'], false);
+    $user = $userStorage->getUser($input['user_id']);
+    $dataS['receiver'] = getSupperAdminId();
+    $dataS['type'] = 'text';
+    $dataS['text'] = 'User unsubscribed - ' .  ($user->name ?? 'no name');
+    $api->sendMessage($dataS);
 } elseif ($input['event'] === "conversation_started") {
     $newUse = new \stdClass();
     $newUse->id = $input['user']['id'] ?? null;
@@ -354,6 +363,19 @@ if ($input['event'] === 'webhook') {
             die();
         }
     }
+    if ($track === TRACK_SUBSCRIBE) {
+        $newUse = new \stdClass();
+        $newUse->id = $input['sender']['id'] ?? null;
+        $newUse->name = $input['sender']['name'] ?? null;
+        $newUse->avatar = $input['sender']['avatar'] ?? null;
+        $newUse->role = UserStorage::ROLE_USER;
+        $newUse->isSubscribed = true;
+        $userStorage->updateUser($newUse);
+        $dataS['receiver'] = getSupperAdminId();
+        $dataS['type'] = 'text';
+        $dataS['text'] = 'New user subscribed - ' . $newUse->name;
+        $api->sendMessage($dataS);
+    }
     if ($text === COMMAND_ADMINS) {
         $text = 'Admins: ';
         $admins = [];
@@ -515,15 +537,6 @@ if ($input['event'] === 'webhook') {
         sendAvailableCommands($isAdmin, $data);
         die();
     }
-    if ($track === TRACK_SUBSCRIBE) {
-        $newUse = new \stdClass();
-        $newUse->id = $input['sender']['id'] ?? null;
-        $newUse->name = $input['sender']['name'] ?? null;
-        $newUse->avatar = $input['sender']['avatar'] ?? null;
-        $newUse->role = UserStorage::ROLE_USER;
-        $newUse->isSubscribed = true;
-        $userStorage->updateUser($newUse);
-    }
 
     sendAvailableCommands($isAdmin, $data);
 
@@ -564,6 +577,14 @@ function isSupperAdmin(string $id = null): bool
     return false;
 }
 
+function getSupperAdminId(): ?string
+{
+    $api = new ViberAPI();
+    $dataApp = $api->getAccountInfo();
+
+    return $dataApp->members[0]->id ?? null;
+}
+
 function getSetButtons(array $excludeIds = []): array
 {
     $buttons = [];
@@ -580,7 +601,7 @@ function getSetButtons(array $excludeIds = []): array
     });
 
     $buttonSkip = [
-        "Text" => "<font color='#FFFFFF' size='32'>Skip setting</font>",
+        "Text" => "<font color='#FFFFFF' size='22'>Skip setting</font>",
         "TextHAlign" => "center",
         "TextVAlign" => "middle",
         "ActionType" => "reply",
@@ -590,7 +611,7 @@ function getSetButtons(array $excludeIds = []): array
         "Columns" => 6
     ];
     $buttonNone = [
-        "Text" => "<font color='#FFFFFF' size='32'>Dont remember</font>",
+        "Text" => "<font color='#FFFFFF' size='22'>Dont remember</font>",
         "TextHAlign" => "center",
         "TextVAlign" => "middle",
         "ActionType" => "reply",
@@ -622,7 +643,7 @@ function getSetButtons(array $excludeIds = []): array
             "Columns" => 1
         ];
         $button = [
-            "Text" => "<font color='#FFFFFF' size='32'>{$user->name}</font>",
+            "Text" => "<font color='#FFFFFF' size='22'>{$user->name}</font>",
             "TextHAlign" => "center",
             "TextVAlign" => "middle",
             "ActionType" => "reply",
@@ -656,7 +677,7 @@ function getCommandButtons(array $commands): array
 
     foreach ($commands as $command) {
         $button = [
-            "Text" => "<font color='#FFFFFF' size='32'>{$command}</font>",
+            "Text" => "<font color='#FFFFFF' size='22'>{$command}</font>",
             "TextHAlign" => "center",
             "TextVAlign" => "middle",
             "ActionType" => "reply",
