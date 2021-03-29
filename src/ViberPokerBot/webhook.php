@@ -23,6 +23,7 @@ const COMMAND_BROADCAST = 'broadcast';
 const COMMAND_WIN = 'win';
 const COMMAND_RESULTS = 'results';
 const COMMAND_RESULT = 'result';
+const COMMAND_GAMES = 'games';
 const COMMAND_SET = 'set';
 const COMMAND_IDS = 'ids';
 const COMMAND_ADMINS = 'admins';
@@ -47,6 +48,7 @@ const COMMANDS_REGULAR = [
     COMMAND_STAT,
     COMMAND_WIN,
     COMMAND_RESULTS,
+    COMMAND_GAMES,
 ];
 
 const STICKER_IDS_WIN = [
@@ -378,7 +380,7 @@ if ($input['event'] === 'webhook') {
             $results[$result->userId]['userId'] = $result->userId;
         }
 
-        if (!$result) {
+        if (!$results) {
             $data['text'] = 'Stat is empty yet.';
             $api->sendMessage($data);
         }
@@ -414,7 +416,7 @@ if ($input['event'] === 'webhook') {
             $results[$result->userId]['userId'] = $result->userId;
         }
 
-        if (!$result) {
+        if (!$results) {
             $data['text'] = 'Stat is empty yet.';
             $api->sendMessage($data);
         }
@@ -447,7 +449,7 @@ if ($input['event'] === 'webhook') {
             $results[$result->userId]['userId'] = $result->userId;
         }
 
-        if (!$result) {
+        if (!$results) {
             $data['text'] = 'Stat is empty yet.';
             $api->sendMessage($data);
         }
@@ -462,7 +464,35 @@ if ($input['event'] === 'webhook') {
                 continue;
             }
             $data['sender']['avatar'] = $user->avatar;
-            $data['text'] = $user->name . "\n 1 place: " . ($result[1] ?? 0) . ",\n 2 place: " . ($result[2] ?? 0) . ",\n 3 place: " . ($result[3] ?? 0) . '.';
+            $data['text'] = $user->name . "\n 1 place: " . ($result[1] ?? 0) . "\n 2 place: " . ($result[2] ?? 0) . "\n 3 place: " . ($result[3] ?? 0);
+            $api->sendMessage($data);
+        }
+        die();
+    }
+    if ($text === COMMAND_GAMES) {
+        $data['text'] = 'Games stat: ';
+        $api->sendMessage($data);
+        $games = [];
+        foreach ($resultStorage->getResults() as $result) {
+            if (!empty($games[$result->gameId])) {
+                $games[$result->gameId][$result->place] = $result->userName;
+                continue;
+            }
+            $games[$result->gameId][$result->place] = $result->userName;
+            $games[$result->gameId]['gameId'] = $result->gameId;
+            $games[$result->gameId]['date'] = $result->date;
+        }
+        if (!$games) {
+            $data['text'] = 'Stat is empty yet.';
+            $api->sendMessage($data);
+        }
+
+        usort($games, function ($a, $b) {
+            return $b['gameId'] <=> $a['gameId'];
+        });
+
+        foreach ($games as $game) {
+            $data['text'] = 'Game ' . $game['gameId'] . ' ' . date("Y-m-d H:i", (int)$game['date']) . "\n 1 place: " . ($game[1] ?? 0) . "\n 2 place: " . ($game[2] ?? 0) . "\n 3 place: " . ($game[3] ?? 0);
             $api->sendMessage($data);
         }
         die();

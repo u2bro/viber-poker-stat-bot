@@ -13,7 +13,7 @@ $html .= '<th>Name</th>';
 $html .= '<th>Role</th>';
 $html .= '<th>Is subscribed</th>';
 $html .= '</tr>';
-$userStorage = new UserStorage();
+$userStorage = UserStorage::getInstance();
 foreach ($userStorage->getUsers() as $user) {
     $html .= '<tr>';
     $html .= '<td>' . htmlspecialchars($user->name) . '</td>';

@@ -13,6 +13,7 @@ $html .= '<th>Name</th>';
 $html .= '<th>Place</th>';
 $html .= '<th>Time</th>';
 $html .= '<th>Who added</th>';
+$html .= '<th>Game №</th>';
 $html .= '</tr>';
 $resultStorage = ResultStorage::getInstance();
 foreach ($resultStorage->getResults() as $result) {
@@ -21,6 +22,7 @@ foreach ($resultStorage->getResults() as $result) {
     $html .= '<td>' . htmlspecialchars($result->place) . '</td>';
     $html .= '<td>' . htmlspecialchars(date("Y-m-d H:i", (int)$result->date)) . '</td>';
     $html .= '<td>' . htmlspecialchars($result->adminName) . '</td>';
+    $html .= '<td>' . htmlspecialchars($result->gameId) . '</td>';
     $html .= '</tr>';
 }
 $html .= '</table>';
