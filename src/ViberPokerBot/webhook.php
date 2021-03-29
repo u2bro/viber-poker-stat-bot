@@ -37,20 +37,20 @@ const COMMAND_USERS = 'users';
 const COMMAND_USERS_SUB = 'users-sub';
 const COMMANDS_ADMIN = [
     COMMAND_SET,
-    COMMAND_IDS,
-    COMMAND_REFRESH_MEMBERS,
-    COMMAND_ADMIN_ADD,
-    COMMAND_ADMIN_REMOVE,
-    COMMAND_USERS_SUB
+//    COMMAND_IDS,
+//    COMMAND_REFRESH_MEMBERS,
+//    COMMAND_ADMIN_ADD,
+//    COMMAND_ADMIN_REMOVE,
+    COMMAND_USERS_SUB,
 ];
 const COMMANDS_REGULAR = [
-    COMMAND_COMMANDS,
-    COMMAND_ADMINS,
-    COMMAND_USERS,
+//    COMMAND_COMMANDS,
     COMMAND_STAT,
     COMMAND_WIN,
     COMMAND_RESULTS,
     COMMAND_GAMES,
+//    COMMAND_USERS,
+//    COMMAND_ADMINS,
 ];
 
 const STICKER_IDS_WIN = [
@@ -166,8 +166,7 @@ if ($input['event'] === 'webhook') {
             $data['text'] = "Set 1 place.";
             $data['keyboard']['Type'] = 'keyboard';
             $data['keyboard']['InputFieldState'] = 'hidden';
-            $buttons = getSetButtons($userStorage);
-            $data['keyboard']['Buttons'] = $buttons;
+            $data['keyboard']['Buttons'] = getSetButtons();
             $data['tracking_data'] = TRACK_SET . TRACK_SEPARATOR_GAME_ID . $resultStorage->getNextGameId();
             $api->sendMessage($data);
             die();
@@ -183,6 +182,7 @@ if ($input['event'] === 'webhook') {
             if ($nextStep > 4 && ($setId === 'none' || str_contains($setId, '=='))) {
                 $data['text'] = "Done!";
                 $api->sendMessage($data);
+                sendAvailableCommands($isAdmin, $data);
                 die();
             }
             foreach ($resultStorage->getResultsByGameId($gameId) as $result) {
@@ -195,6 +195,7 @@ if ($input['event'] === 'webhook') {
                 if (!$user && $setId !== 'none') {
                     $data['text'] = "*Error* : user with id {$setId} not found";
                     $api->sendMessage($data);
+                    sendAvailableCommands($isAdmin, $data);
                     die();
                 }
 
@@ -241,6 +242,7 @@ if ($input['event'] === 'webhook') {
                 if ($place === 3) {
                     $data['text'] = "Done!";
                     $api->sendMessage($data);
+                    sendAvailableCommands($isAdmin, $data);
                     die();
                 }
 
@@ -248,8 +250,7 @@ if ($input['event'] === 'webhook') {
                 $data['keyboard']['Type'] = 'keyboard';
                 $data['keyboard']['InputFieldState'] = 'hidden';
                 $excludeIds[] = $setId;
-                $buttons = getSetButtons($userStorage, $excludeIds);
-                $data['keyboard']['Buttons'] = $buttons;
+                $data['keyboard']['Buttons'] = getSetButtons($excludeIds);
                 $data['tracking_data'] = TRACK_SET . TRACK_SEPARATOR_GAME_ID . $gameId . TRACK_SEPARATOR_USER_ID . implode(TRACK_SEPARATOR_USER_ID, $excludeIds);
                 $api->sendMessage($data);
                 die();
@@ -265,6 +266,7 @@ if ($input['event'] === 'webhook') {
             }
             $data['text'] = $text;
             $api->sendMessage($data);
+            sendAvailableCommands($isAdmin, $data);
             die();
         }
         if ($text === COMMAND_IDS) {
@@ -279,6 +281,7 @@ if ($input['event'] === 'webhook') {
                 $data['text'] = $user->name . ' ' . $user->id;
                 $api->sendMessage($data);
             }
+            sendAvailableCommands($isAdmin, $data);
             die();
         }
         if (str_starts_with($text, COMMAND_ADMIN_ADD) || str_starts_with($text, COMMAND_ADMIN_REMOVE)) {
@@ -329,6 +332,7 @@ if ($input['event'] === 'webhook') {
             }
             $data['text'] = $text;
             $api->sendMessage($data);
+            sendAvailableCommands($isAdmin, $data);
             die();
         }
         if ($text === COMMAND_BROADCAST) {
@@ -346,6 +350,7 @@ if ($input['event'] === 'webhook') {
             $data['text'] = $input['message']['text'];
             $data['broadcast_list'] = $userStorage->getUserIds();
             $api->broadcastMessage($data);
+            sendAvailableCommands($isAdmin, $data);
             die();
         }
     }
@@ -362,6 +367,7 @@ if ($input['event'] === 'webhook') {
         }
         $data['text'] = $text;
         $api->sendMessage($data);
+        sendAvailableCommands($isAdmin, $data);
         die();
     }
     if ($text === COMMAND_USERS) {
@@ -372,6 +378,7 @@ if ($input['event'] === 'webhook') {
         }
         $data['text'] = $text;
         $api->sendMessage($data);
+        sendAvailableCommands($isAdmin, $data);
         die();
     }
     if ($text === COMMAND_STAT) {
@@ -405,6 +412,7 @@ if ($input['event'] === 'webhook') {
             $data['text'] = $user->name . ' - ' . $result['score'] . ' points.';
             $api->sendMessage($data);
         }
+        sendAvailableCommands($isAdmin, $data);
         die();
     }
     if ($text === COMMAND_WIN) {
@@ -441,6 +449,7 @@ if ($input['event'] === 'webhook') {
             $data['text'] = $user->name . ' won - ' . $result['score'] . ($result['score'] === 1 ? ' time.' : ' times.');
             $api->sendMessage($data);
         }
+        sendAvailableCommands($isAdmin, $data);
         die();
     }
     if ($text === COMMAND_RESULTS || $text === COMMAND_RESULT) {
@@ -474,6 +483,7 @@ if ($input['event'] === 'webhook') {
             $data['text'] = $user->name . "\n 1 place: " . ($result[1] ?? 0) . "\n 2 place: " . ($result[2] ?? 0) . "\n 3 place: " . ($result[3] ?? 0);
             $api->sendMessage($data);
         }
+        sendAvailableCommands($isAdmin, $data);
         die();
     }
     if ($text === COMMAND_GAMES) {
@@ -502,6 +512,7 @@ if ($input['event'] === 'webhook') {
             $data['text'] = 'Game ' . $game['gameId'] . ' ' . date("Y-m-d H:i", (int)$game['date']) . "\n 1 place: " . ($game[1] ?? '') . "\n 2 place: " . ($game[2] ?? '') . "\n 3 place: " . ($game[3] ?? '');
             $api->sendMessage($data);
         }
+        sendAvailableCommands($isAdmin, $data);
         die();
     }
     if ($track === TRACK_SUBSCRIBE) {
@@ -514,16 +525,23 @@ if ($input['event'] === 'webhook') {
         $userStorage->updateUser($newUse);
     }
 
+    sendAvailableCommands($isAdmin, $data);
+
+    die();
+}
+
+function sendAvailableCommands($isAdmin, $data)
+{
     $commands = COMMANDS_REGULAR;
     if ($isAdmin) {
         $commands = array_merge($commands, COMMANDS_ADMIN);
     }
-    $text = 'Available commands: ';
-    foreach ($commands as $key => $command) {
-        $text .= $command . (!empty($commands[$key + 1]) ? ', ' : '.');
-    }
 
-    $data['text'] = $text;
+    $data['text'] = "Chose command";
+    $data['keyboard']['Type'] = 'keyboard';
+    $data['keyboard']['InputFieldState'] = 'hidden';
+    $data['keyboard']['Buttons'] = getCommandButtons($commands);
+    $api = new ViberAPI();
     $api->sendMessage($data);
 }
 
@@ -546,9 +564,10 @@ function isSupperAdmin(string $id = null): bool
     return false;
 }
 
-function getSetButtons(UserStorage $userStorage, array $excludeIds = []): array
+function getSetButtons(array $excludeIds = []): array
 {
     $buttons = [];
+    $userStorage = UserStorage::getInstance();
     $users = $userStorage->getAll();
     if ($excludeIds) {
         $users = array_filter($users, function ($element) use ($excludeIds) {
@@ -581,11 +600,11 @@ function getSetButtons(UserStorage $userStorage, array $excludeIds = []): array
         "Columns" => 6
     ];
     if ($count > 24) {
-        $buttonNone['Columns'] = 3;
+        $buttonNone['Columns'] = $buttonSkip['Columns'] = 3;
     } elseif ($count > 48) {
-        $buttonNone['Columns'] = 2;
+        $buttonNone['Columns'] = $buttonSkip['Columns'] = 2;
     } elseif ($count > 72) {
-        $buttonNone['Columns'] = 1;
+        $buttonNone['Columns'] = $buttonSkip['Columns'] = 1;
     }
     $buttons[] = $buttonSkip;
     $buttons[] = $buttonNone;
@@ -624,6 +643,37 @@ function getSetButtons(UserStorage $userStorage, array $excludeIds = []): array
         }
 
         $buttons[] = $buttonImage;
+        $buttons[] = $button;
+    }
+
+    return $buttons;
+}
+
+function getCommandButtons(array $commands): array
+{
+    $buttons = [];
+    $count = count($commands);
+
+    foreach ($commands as $command) {
+        $button = [
+            "Text" => "<font color='#FFFFFF' size='32'>{$command}</font>",
+            "TextHAlign" => "center",
+            "TextVAlign" => "middle",
+            "ActionType" => "reply",
+            "TextSize" => "large",
+            "ActionBody" => $command,
+            "BgColor" => "#665CAC",
+            "Columns" => 3
+        ];
+//        if ($count > 24) {
+//            $button['Columns'] = 3;
+//        }
+        if ($count > 48) {
+            $button['Columns'] = 2;
+        }
+        if ($count > 72) {
+            $button['Columns'] = 1;
+        }
         $buttons[] = $button;
     }
 
