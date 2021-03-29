@@ -14,7 +14,7 @@ Logger::log(($_SERVER ? 'Server: ' . json_encode($_SERVER) . PHP_EOL : '')
 
 
 $url = 'https://chatapi.viber.com/pa/set_webhook';
-$jsonData = '{ "auth_token": "' . getenv('VIBER_AUTH_TOKEN') . '", "url": "https://coronamatter.com/ViberPokerBot/webhook.php" }';
+$jsonData = '{ "auth_token": "' . getenv('VIBER_AUTH_TOKEN') . '", "url": "https://' . getenv('VIBER_WEBHOOK_SERVER') . '/ViberPokerBot/webhook.php" }';
 
 $ch = curl_init($url);
 curl_setopt($ch, CURLOPT_POST, 1);
