@@ -6,6 +6,16 @@ require_once 'Storage.php';
 
 class UserStorage extends Storage
 {
+
+    //User fields
+    //{
+    //"id": data,
+    //"name": data,
+    //"avatar": data,
+    //"role": data,
+    //"isSubscribed": data
+    //}
+
     public const ROLE_ADMIN = 'admin';
     public const ROLE_USER = 'user';
 

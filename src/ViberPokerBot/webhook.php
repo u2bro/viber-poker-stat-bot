@@ -60,7 +60,7 @@ const STICKER_IDS_WIN = [
 
 DotEnv::load(__DIR__ . '/../../config/.env');
 
-if (strpos($_SERVER['HTTP_USER_AGENT'], 'akka-http') !== 0) {
+if (!str_starts_with($_SERVER['HTTP_USER_AGENT'], 'akka-http')) {
     $resultStorage = ResultStorage::getInstance();
     $results = [];
     foreach ($resultStorage->getAll() as $result) {
@@ -172,7 +172,7 @@ if ($input['event'] === 'webhook') {
             $api->sendMessage($data);
             die();
         }
-        if (strpos($track, TRACK_SET) === 0) {
+        if ($text !== 'skip' && str_starts_with($track, TRACK_SET)) {
             $setId = $input['message']['text'] ?? '';
             $excludeIds = explode(TRACK_SEPARATOR_USER_ID, $track);
             $gameId = (int)(explode(TRACK_SEPARATOR_GAME_ID, $track)[1] ?? 0);
@@ -180,7 +180,7 @@ if ($input['event'] === 'webhook') {
             $nextStep = count($excludeIds) + 2;
             $place = $nextStep - 1;
 
-            if ($nextStep > 4 && ($setId === 'none' || strpos($setId, '==') !== false)) {
+            if ($nextStep > 4 && ($setId === 'none' || str_contains($setId, '=='))) {
                 $data['text'] = "Done!";
                 $api->sendMessage($data);
                 die();
@@ -190,7 +190,7 @@ if ($input['event'] === 'webhook') {
                     die(); //accident double click, ignore it
                 }
             }
-            if ($nextStep < 5 && ($setId === 'none' || strpos($setId, '==') !== false)) {
+            if ($nextStep < 5 && ($setId === 'none' || str_contains($setId, '=='))) {
                 $user = $userStorage->getUser($setId);
                 if (!$user && $setId !== 'none') {
                     $data['text'] = "*Error* : user with id {$setId} not found";
@@ -281,7 +281,7 @@ if ($input['event'] === 'webhook') {
             }
             die();
         }
-        if (strpos($text, COMMAND_ADMIN_ADD) === 0 || strpos($text, COMMAND_ADMIN_REMOVE) === 0) {
+        if (str_starts_with($text, COMMAND_ADMIN_ADD) || str_starts_with($text, COMMAND_ADMIN_REMOVE)) {
             if (!isSupperAdmin($senderId)) {
                 $data['text'] = '*Error* : this command allowed only for superadmins';
                 $api->sendMessage($data);
@@ -292,15 +292,15 @@ if ($input['event'] === 'webhook') {
                 $data['text'] = 'User ids: ';
                 $api->sendMessage($data);
                 foreach ($userStorage->getAll() as $key => $user) {
-                    $data['text'] = $user->name . ' admin-' . (strpos($text, COMMAND_ADMIN_ADD) === 0 ? 'add:' : 'remove:') . $user->id;
+                    $data['text'] = $user->name . ' admin-' . (str_starts_with($text, COMMAND_ADMIN_ADD) ? 'add:' : 'remove:') . $user->id;
                     $api->sendMessage($data);
                 }
                 die();
             }
-            $res = $userStorage->setRole($id, strpos($text, COMMAND_ADMIN_ADD) === 0 ? UserStorage::ROLE_ADMIN : UserStorage::ROLE_USER);
+            $res = $userStorage->setRole($id, str_starts_with($text, COMMAND_ADMIN_ADD) ? UserStorage::ROLE_ADMIN : UserStorage::ROLE_USER);
             if ($res) {
                 $adminName = $input['sender']['name'] ?? 'Admin';
-                $data['text'] = $adminName . (strpos($text, COMMAND_ADMIN_ADD) === 0 ? ' give you admin permissions.' : ' remove your admin permissions.');
+                $data['text'] = $adminName . (str_starts_with($text, COMMAND_ADMIN_ADD) ? ' give you admin permissions.' : ' remove your admin permissions.');
                 $data['receiver'] = $id;
                 $api->sendMessage($data);
                 $data['receiver'] = $senderId;
@@ -555,13 +555,23 @@ function getSetButtons(UserStorage $userStorage, array $excludeIds = []): array
             return !in_array($element->id, $excludeIds, true);
         });
     }
-    $count = count($users) + 1;
+    $count = count($users) + 2;
     usort($users, function ($a, $b) {
         return $a->name <=> $b->name;
     });
 
+    $buttonSkip = [
+        "Text" => "<font color='#FFFFFF' size='32'>Skip setting</font>",
+        "TextHAlign" => "center",
+        "TextVAlign" => "middle",
+        "ActionType" => "reply",
+        "TextSize" => "large",
+        "ActionBody" => 'skip',
+        "BgColor" => "#665CAC",
+        "Columns" => 6
+    ];
     $buttonNone = [
-        "Text" => "<font color='#FFFFFF' size='32'>None</font>",
+        "Text" => "<font color='#FFFFFF' size='32'>Dont remember</font>",
         "TextHAlign" => "center",
         "TextVAlign" => "middle",
         "ActionType" => "reply",
@@ -577,6 +587,7 @@ function getSetButtons(UserStorage $userStorage, array $excludeIds = []): array
     } elseif ($count > 72) {
         $buttonNone['Columns'] = 1;
     }
+    $buttons[] = $buttonSkip;
     $buttons[] = $buttonNone;
 
     foreach ($users as $user) {

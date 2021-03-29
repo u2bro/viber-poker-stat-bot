@@ -6,6 +6,18 @@ require_once 'Storage.php';
 
 class ResultStorage extends Storage
 {
+
+    //Result fields
+    //{
+    //"userId": data,
+    //"userName": data,
+    //"place": data,
+    //"adminId": data,
+    //"adminName": data,
+    //"date": data,
+    //"gameId": data
+    //}
+
     protected function getFilePath(): string
     {
         return static::STORAGE_PATH . 'result.json';
