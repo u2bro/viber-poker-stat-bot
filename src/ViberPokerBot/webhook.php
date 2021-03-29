@@ -17,6 +17,8 @@ require_once __DIR__ . '/Lib/ViberAPI.php';
 const TRACK_SUBSCRIBE = 'subscribe';
 const TRACK_SET = 'set';
 const TRACK_BROADCAST = 'broadcast';
+const TRACK_SEPARATOR_GAME_ID = '--';
+const TRACK_SEPARATOR_USER_ID = '::';
 
 const COMMAND_REFRESH_MEMBERS = 'refresh-members';
 const COMMAND_BROADCAST = 'broadcast';
@@ -162,25 +164,31 @@ if ($input['event'] === 'webhook') {
     if ($isAdmin) {
         if ($text === COMMAND_SET) {
             $data['text'] = "Set 1 place.";
-            $data['type'] = 'text';
             $data['keyboard']['Type'] = 'keyboard';
             $data['keyboard']['InputFieldState'] = 'hidden';
             $buttons = getSetButtons($userStorage);
             $data['keyboard']['Buttons'] = $buttons;
-            $data['tracking_data'] = TRACK_SET . '--' . $resultStorage->getNextGameId();
+            $data['tracking_data'] = TRACK_SET . TRACK_SEPARATOR_GAME_ID . $resultStorage->getNextGameId();
             $api->sendMessage($data);
             die();
         }
         if (strpos($track, TRACK_SET) === 0) {
             $setId = $input['message']['text'] ?? '';
-            $excludeIds = explode(':', $track);
+            $excludeIds = explode(TRACK_SEPARATOR_USER_ID, $track);
+            $gameId = (int)(explode(TRACK_SEPARATOR_GAME_ID, $track)[1] ?? 0);
             unset($excludeIds[0]);
             $nextStep = count($excludeIds) + 2;
+            $place = $nextStep - 1;
+
             if ($nextStep > 4 && ($setId === 'none' || strpos($setId, '==') !== false)) {
                 $data['text'] = "Done!";
-                $data['type'] = 'text';
                 $api->sendMessage($data);
                 die();
+            }
+            foreach ($resultStorage->getResultsByGameId($gameId) as $result) {
+                if ((int)$result->place === $place) {
+                    die(); //accident double click, ignore it
+                }
             }
             if ($nextStep < 5 && ($setId === 'none' || strpos($setId, '==') !== false)) {
                 $user = $userStorage->getUser($setId);
@@ -189,16 +197,16 @@ if ($input['event'] === 'webhook') {
                     $api->sendMessage($data);
                     die();
                 }
-                $step = $nextStep - 1;
 
                 if ($user) {
                     $result = new \stdClass();
                     $result->userId = $user->id;
                     $result->userName = $user->name;
-                    $result->place = $step;
+                    $result->place = $place;
                     $result->adminId = $senderId;
                     $result->adminName = $input['sender']['name'] ?? '';
                     $result->date = time();
+                    $result->gameId = $gameId;
                     $resultStorage->addResult($result);
                 }
                 $userIds = $userStorage->getUserIds();
@@ -207,7 +215,7 @@ if ($input['event'] === 'webhook') {
                 }
                 $userIds = array_values($userIds);
 
-                if ($step === 1) {
+                if ($place === 1) {
                     $dataB['type'] = 'sticker';
                     $dataB['sticker_id'] = STICKER_IDS_WIN[array_rand(STICKER_IDS_WIN)];
                     $dataB['broadcast_list'] = $userIds;
@@ -223,16 +231,15 @@ if ($input['event'] === 'webhook') {
 
                 $dataC['type'] = 'text';
                 $dataC['broadcast_list'] = $userIds;
-                $dataC['text'] = "{$step} place: " . ($user->name ?? 'none');
+                $dataC['text'] = "{$place} place: " . ($user->name ?? 'none');
                 $dataC['sender']['name'] = 'bot';
                 if ($user) {
                     $dataC['sender']['avatar'] = $user->avatar;
                 }
                 $api->broadcastMessage($dataC);
 
-                if ($step === 3) {
+                if ($place === 3) {
                     $data['text'] = "Done!";
-                    $data['type'] = 'text';
                     $api->sendMessage($data);
                     die();
                 }
@@ -243,7 +250,7 @@ if ($input['event'] === 'webhook') {
                 $excludeIds[] = $setId;
                 $buttons = getSetButtons($userStorage, $excludeIds);
                 $data['keyboard']['Buttons'] = $buttons;
-                $data['tracking_data'] = TRACK_SET . ':' . implode(':', $excludeIds);
+                $data['tracking_data'] = TRACK_SET . TRACK_SEPARATOR_GAME_ID . $gameId . TRACK_SEPARATOR_USER_ID . implode(TRACK_SEPARATOR_USER_ID, $excludeIds);
                 $api->sendMessage($data);
                 die();
             }
@@ -331,14 +338,12 @@ if ($input['event'] === 'webhook') {
                 die();
             }
             $data['text'] = "Send broadcast message";
-            $data['type'] = 'text';
             $data['tracking_data'] = TRACK_BROADCAST;
             $api->sendMessage($data);
             die();
         }
         if ($track === TRACK_BROADCAST) {
             $data['text'] = $input['message']['text'];
-            $data['type'] = 'text';
             $data['broadcast_list'] = $userStorage->getUserIds();
             $api->broadcastMessage($data);
             die();
@@ -433,7 +438,7 @@ if ($input['event'] === 'webhook') {
                 continue;
             }
             $data['sender']['avatar'] = $user->avatar;
-            $data['text'] = $user->name . ' won - ' . $result['score'] . ($result['score']  === 1 ? ' time.' : ' times.');
+            $data['text'] = $user->name . ' won - ' . $result['score'] . ($result['score'] === 1 ? ' time.' : ' times.');
             $api->sendMessage($data);
         }
         die();
@@ -494,7 +499,7 @@ if ($input['event'] === 'webhook') {
         });
 
         foreach ($games as $game) {
-            $data['text'] = 'Game ' . $game['gameId'] . ' ' . date("Y-m-d H:i", (int)$game['date']) . "\n 1 place: " . ($game[1] ?? 0) . "\n 2 place: " . ($game[2] ?? 0) . "\n 3 place: " . ($game[3] ?? 0);
+            $data['text'] = 'Game ' . $game['gameId'] . ' ' . date("Y-m-d H:i", (int)$game['date']) . "\n 1 place: " . ($game[1] ?? '') . "\n 2 place: " . ($game[2] ?? '') . "\n 3 place: " . ($game[3] ?? '');
             $api->sendMessage($data);
         }
         die();

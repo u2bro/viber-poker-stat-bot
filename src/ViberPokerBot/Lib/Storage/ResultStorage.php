@@ -32,12 +32,24 @@ class ResultStorage extends Storage
 
     public function getNextGameId(): int
     {
-        $nextGameId = 1;
+        $nextGameId = 0;
         foreach ($this->getAll() as $result) {
             if ((int)$result->gameId > $nextGameId) {
                 $nextGameId = (int)$result->gameId;
             }
         }
-        return $nextGameId;
+
+        return ++$nextGameId;
+    }
+
+    public function getResultsByGameId(int $gameId): array
+    {
+        $results = [];
+        foreach ($this->getAll() as $result) {
+            if ((int)$result->gameId === $gameId) {
+                $results[] = $result;
+            }
+        }
+        return $results;
     }
 }
