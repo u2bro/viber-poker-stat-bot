@@ -14,6 +14,8 @@ require_once __DIR__ . '/Lib/Storage/UserStorage.php';
 require_once __DIR__ . '/Lib/Logger.php';
 require_once __DIR__ . '/Lib/ViberAPI.php';
 
+const EMPTY_AVATAR_URL = 'https://invite.viber.com/assets/g2-chat/images/generic-avatar.jpg';
+
 const TRACK_SUBSCRIBE = 'subscribe';
 const TRACK_SET = 'set';
 const TRACK_BROADCAST = 'broadcast';
@@ -81,7 +83,7 @@ if (!str_starts_with($_SERVER['HTTP_USER_AGENT'], 'akka-http')) {
         if (!$user) {
             continue;
         }
-        $data['sender']['avatar'] = $user->avatar;
+        $data['sender']['avatar'] = $user->avatar ?? EMPTY_AVATAR_URL;
         $data['text'] = $user->name . ' 1 place: ' . ($result[1] ?? 0) . ', 2 place: ' . ($result[2] ?? 0) . ', 3 place: ' . ($result[3] ?? 0) . '.';
 //        var_dump($results);
 //        callApi('https://chatapi.viber.com/pa/send_message', $data);
@@ -244,7 +246,7 @@ if ($input['event'] === 'webhook') {
                 $dataC['text'] = "{$place} place: " . ($user->name ?? 'none');
                 $dataC['sender']['name'] = 'bot';
                 if ($user) {
-                    $dataC['sender']['avatar'] = $user->avatar;
+                    $dataC['sender']['avatar'] = $user->avatar ?? EMPTY_AVATAR_URL;
                 }
                 $api->broadcastMessage($dataC);
 
@@ -430,7 +432,7 @@ if ($input['event'] === 'webhook') {
             if (!$user) {
                 continue;
             }
-            $data['sender']['avatar'] = $user->avatar;
+            $data['sender']['avatar'] = $user->avatar ?? EMPTY_AVATAR_URL;
             $data['text'] = $user->name . ' - ' . $result['score'] . ' points.';
             $api->sendMessage($data);
         }
@@ -467,7 +469,7 @@ if ($input['event'] === 'webhook') {
             if (!$user) {
                 continue;
             }
-            $data['sender']['avatar'] = $user->avatar;
+            $data['sender']['avatar'] = $user->avatar ?? EMPTY_AVATAR_URL;
             $data['text'] = $user->name . ' won - ' . $result['score'] . ($result['score'] === 1 ? ' time.' : ' times.');
             $api->sendMessage($data);
         }
@@ -501,7 +503,7 @@ if ($input['event'] === 'webhook') {
             if (!$user) {
                 continue;
             }
-            $data['sender']['avatar'] = $user->avatar;
+            $data['sender']['avatar'] = $user->avatar ?? EMPTY_AVATAR_URL;
             $data['text'] = $user->name . "\n 1 place: " . ($result[1] ?? 0) . "\n 2 place: " . ($result[2] ?? 0) . "\n 3 place: " . ($result[3] ?? 0);
             $api->sendMessage($data);
         }
@@ -639,7 +641,7 @@ function getSetButtons(array $excludeIds = []): array
             "TextSize" => "large",
             "ActionBody" => $user->id,
             "BgColor" => "#665CAC",
-            "Image" => $user->avatar,
+            "Image" => $user->avatar ?? EMPTY_AVATAR_URL,
             "Columns" => 1
         ];
         $button = [
