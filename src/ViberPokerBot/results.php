@@ -1,7 +1,5 @@
 <?php
 
-namespace PokerBot;
-
 use ViberPokerBot\Lib\Storage\ResultStorage;
 
 require_once __DIR__ . '/Lib/Storage/ResultStorage.php';
