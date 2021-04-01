@@ -55,6 +55,12 @@ const COMMANDS_REGULAR = [
 //    COMMAND_ADMINS,
 ];
 
+ const POINTS = [
+     1 => 5,
+     2 => 3,
+     3 => 2
+ ];
+
 const STICKER_IDS_WIN = [
     99610, 88023, 40127, 87609, 36917, 13918, 105812, 36913, 13906, 21617, 87614, 87602
 ];
@@ -411,10 +417,10 @@ if ($input['event'] === 'webhook') {
         $results = [];
         foreach ($resultStorage->getAll() as $result) {
             if (!empty($results[$result->userId]['score'])) {
-                $results[$result->userId]['score'] += 4 - (int)$result->place;
+                $results[$result->userId]['score'] += POINTS[(int)$result->place];
                 continue;
             }
-            $results[$result->userId]['score'] = 4 - (int)$result->place;
+            $results[$result->userId]['score'] = POINTS[(int)$result->place];
             $results[$result->userId]['userId'] = $result->userId;
         }
 

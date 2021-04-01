@@ -9,14 +9,20 @@ require_once __DIR__ . '/ViberPokerBot/Lib/Storage/UserStorage.php';
 //const EMPTY_AVATAR_URL = 'https://www.viber.com/app/uploads/s3.jpg';
 const EMPTY_AVATAR_URL = 'https://invite.viber.com/assets/g2-chat/images/generic-avatar.jpg';
 
+const POINTS = [
+    1 => 5,
+    2 => 3,
+    3 => 2
+];
+
 $resultStorage = ResultStorage::getInstance();
 $userStorage = UserStorage::getInstance();
 $stat = $personResults = [];
 foreach ($resultStorage->getAll() as $result) {
     if (!empty($stat[$result->userId]['score'])) {
-        $stat[$result->userId]['score'] += 4 - (int)$result->place;
+        $stat[$result->userId]['score'] += POINTS[(int)$result->place];
     } else {
-        $stat[$result->userId]['score'] = 4 - (int)$result->place;
+        $stat[$result->userId]['score'] = POINTS[(int)$result->place];
         $stat[$result->userId]['user'] = $userStorage->getUser($result->userId);
     }
     if (!empty($personResults[$result->userId][$result->place])) {
