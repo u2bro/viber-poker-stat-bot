@@ -119,6 +119,9 @@ if ($input['event'] === 'webhook') {
     echo json_encode($webhook_response);
     die;
 } elseif ($input['event'] === "subscribed") {
+    if (($user = $userStorage->getUser($input['user']['id'] ?? null)) && $user->isSubscribed) {
+        die();
+    }
     $newUse = new \stdClass();
     $newUse->id = $input['user']['id'] ?? null;
     $newUse->name = $input['user']['name'] ?? null;
@@ -138,6 +141,12 @@ if ($input['event'] === 'webhook') {
     $dataS['text'] = 'User unsubscribed - ' .  ($user->name ?? 'no name');
     $api->sendMessage($dataS);
 } elseif ($input['event'] === "conversation_started") {
+    if ($user = $userStorage->getUser($input['user']['id'] ?? null)) {
+        $data['receiver'] = $user->id;
+        $data['sender']['name'] = 'bot';
+        sendAvailableCommands($userStorage->isUserAdmin($user->id), $data);
+        die();
+    }
     $newUse = new \stdClass();
     $newUse->id = $input['user']['id'] ?? null;
     $newUse->name = $input['user']['name'] ?? null;
@@ -372,6 +381,12 @@ if ($input['event'] === 'webhook') {
         }
     }
     if ($track === TRACK_SUBSCRIBE) {
+        if (($user = $userStorage->getUser($input['sender']['id'] ?? null)) && $user->isSubscribed) {
+            $data['receiver'] = $user->id;
+            $data['sender']['name'] = 'bot';
+            sendAvailableCommands($userStorage->isUserAdmin($user->id), $data);
+            die();
+        }
         $newUse = new \stdClass();
         $newUse->id = $input['sender']['id'] ?? null;
         $newUse->name = $input['sender']['name'] ?? null;
