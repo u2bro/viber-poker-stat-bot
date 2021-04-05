@@ -24,14 +24,9 @@ class UserStorage extends Storage
         return static::STORAGE_PATH . 'users.json';
     }
 
-    protected function storeUsersToFile(array $users): void
+    protected function storeDataToFile(array $users): void
     {
         file_put_contents($this->getFilePath(), json_encode($users, JSON_THROW_ON_ERROR));
-    }
-
-    public function getUsers(): array
-    {
-        return array_values((array)@json_decode(file_get_contents($this->getFilePath(), true)));
     }
 
     public function getUser($id)
@@ -97,7 +92,7 @@ class UserStorage extends Storage
             }
         }
         $users[] = $newUser;
-        $this->storeUsersToFile($users);
+        $this->storeDataToFile($users);
 
         return true;
     }
@@ -127,7 +122,7 @@ class UserStorage extends Storage
         }
 
         $users = array_merge($users, $newUsers);
-        $this->storeUsersToFile($users);
+        $this->storeDataToFile($users);
 
         return true;
     }
@@ -159,7 +154,7 @@ class UserStorage extends Storage
             return false;
         }
 
-        $this->storeUsersToFile($users);
+        $this->storeDataToFile($users);
 
         return true;
     }
@@ -179,7 +174,7 @@ class UserStorage extends Storage
             return false;
         }
 
-        $this->storeUsersToFile($users);
+        $this->storeDataToFile($users);
 
         return true;
     }

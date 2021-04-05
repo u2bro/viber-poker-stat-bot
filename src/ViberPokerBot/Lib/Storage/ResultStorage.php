@@ -27,19 +27,14 @@ class ResultStorage extends Storage
     {
         $results = $this->getAll();
         $results[] = $newResult;
-        $this->storeResultsToFile($results);
+        $this->storeDataToFile($results);
 
         return true;
     }
 
-    protected function storeResultsToFile(array $results): void
+    protected function storeDataToFile(array $results): void
     {
         file_put_contents($this->getFilePath(), json_encode($results, JSON_THROW_ON_ERROR));
-    }
-
-    public function getResults(): array
-    {
-        return array_values((array)@json_decode(file_get_contents($this->getFilePath(), true)));
     }
 
     public function getNextGameId(): int

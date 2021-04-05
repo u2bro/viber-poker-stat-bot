@@ -4,11 +4,13 @@ namespace ViberPokerBot;
 
 use ViberPokerBot\Lib\DotEnv;
 use ViberPokerBot\Lib\Logger;
+use ViberPokerBot\Lib\Storage\BeerStorage;
 use ViberPokerBot\Lib\Storage\ResultStorage;
 use ViberPokerBot\Lib\Storage\UserStorage;
 use ViberPokerBot\Lib\ViberAPI;
 
 require_once __DIR__ . '/Lib/DotEnv.php';
+require_once __DIR__ . '/Lib/Storage/BeerStorage.php';
 require_once __DIR__ . '/Lib/Storage/ResultStorage.php';
 require_once __DIR__ . '/Lib/Storage/UserStorage.php';
 require_once __DIR__ . '/Lib/Logger.php';
@@ -37,6 +39,10 @@ const COMMAND_COMMANDS = 'commands';
 const COMMAND_STAT = 'stat';
 const COMMAND_USERS = 'users';
 const COMMAND_USERS_SUB = 'users-sub';
+const COMMAND_BEER_ADD = 'beer-add';
+const COMMAND_BEER_REMOVE = 'beer-remove';
+const COMMAND_BEER_STATUS = 'beer-status';
+
 const COMMANDS_ADMIN = [
     COMMAND_SET,
 //    COMMAND_IDS,
@@ -47,6 +53,9 @@ const COMMANDS_ADMIN = [
 ];
 const COMMANDS_REGULAR = [
 //    COMMAND_COMMANDS,
+    COMMAND_BEER_ADD,
+    COMMAND_BEER_REMOVE,
+    COMMAND_BEER_STATUS,
     COMMAND_STAT,
     COMMAND_WIN,
     COMMAND_RESULTS,
@@ -55,11 +64,11 @@ const COMMANDS_REGULAR = [
 //    COMMAND_ADMINS,
 ];
 
- const POINTS = [
-     1 => 5,
-     2 => 3,
-     3 => 2
- ];
+const POINTS = [
+    1 => 5,
+    2 => 3,
+    3 => 2
+];
 
 const STICKER_IDS_WIN = [
     99610, 88023, 40127, 87609, 36917, 13918, 105812, 36913, 13906, 21617, 87614, 87602
@@ -69,32 +78,6 @@ const STICKER_IDS_WIN = [
 DotEnv::load(__DIR__ . '/../../config/.env');
 
 if (!empty($_SERVER['HTTP_USER_AGENT'])) {
-    $resultStorage = ResultStorage::getInstance();
-    $results = [];
-    foreach ($resultStorage->getAll() as $result) {
-        if (!empty($results[$result->userId][$result->place])) {
-            $results[$result->userId][$result->place] += 1;
-            continue;
-        }
-        $results[$result->userId][$result->place] = 1;
-        $results[$result->userId]['userId'] = $result->userId;
-    }
-
-    usort($results, function ($a, $b) {
-        return ($b[1] ?? 0) <=> ($a[1] ?? 0);
-    });
-    $userStorage = UserStorage::getInstance();
-    foreach ($results as $result) {
-        $user = $userStorage->getUser($result['userId']);
-        if (!$user) {
-            continue;
-        }
-        $data['sender']['avatar'] = $user->avatar ?? EMPTY_AVATAR_URL;
-        $data['text'] = $user->name . ' 1 place: ' . ($result[1] ?? 0) . ', 2 place: ' . ($result[2] ?? 0) . ', 3 place: ' . ($result[3] ?? 0) . '.';
-//        var_dump($results);
-//        callApi('https://chatapi.viber.com/pa/send_message', $data);
-    }
-//    var_dump($results);
     die();
 }
 
@@ -111,6 +94,8 @@ Logger::log(($_SERVER ? 'Server: ' . json_encode($_SERVER) . PHP_EOL : '')
 $userStorage = UserStorage::getInstance();
 /** @var ResultStorage $resultStorage */
 $resultStorage = ResultStorage::getInstance();
+/** @var BeerStorage $beerStorage */
+$beerStorage = BeerStorage::getInstance();
 $api = new ViberAPI();
 if ($input['event'] === 'webhook') {
     $webhook_response['status'] = 0;
@@ -138,7 +123,7 @@ if ($input['event'] === 'webhook') {
     $user = $userStorage->getUser($input['user_id']);
     $dataS['receiver'] = getSupperAdminId();
     $dataS['type'] = 'text';
-    $dataS['text'] = 'User unsubscribed - ' .  ($user->name ?? 'no name');
+    $dataS['text'] = 'User unsubscribed - ' . ($user->name ?? 'no name');
     $api->sendMessage($dataS);
 } elseif ($input['event'] === "conversation_started") {
     if ($user = $userStorage->getUser($input['user']['id'] ?? null)) {
@@ -263,14 +248,14 @@ if ($input['event'] === 'webhook') {
                 $excludeIds[] = $setId;
                 if ($place === 3) {
                     $winners = [];
-                    foreach ($excludeIds as $winnerId){
+                    foreach ($excludeIds as $winnerId) {
                         $winners[] = $userStorage->getUser($winnerId);
                     }
                     $dataF['type'] = 'text';
                     $dataF['broadcast_list'] = $userStorage->getUserIds();
                     $dataF['sender']['name'] = 'bot';
                     $dataF['text'] = "Game over. Congratulations to the winners!" . PHP_EOL;
-                    foreach ($winners as $key => $winner){
+                    foreach ($winners as $key => $winner) {
                         $dataF['text'] .= ($key + 1) . ' place: ' . ($winner->name ?? 'none') . PHP_EOL;
                     }
                     $api->broadcastMessage($dataF);
@@ -403,6 +388,35 @@ if ($input['event'] === 'webhook') {
         $dataS['type'] = 'text';
         $dataS['text'] = 'New user subscribed - ' . $newUse->name;
         $api->sendMessage($dataS);
+    }
+    if ($text === COMMAND_BEER_ADD) {
+        $user = $userStorage->getUser($senderId);
+        if (!$user) {
+            die();
+        }
+        $newBeer = new \stdClass();
+        $newBeer->userId = $user->id;
+        $newBeer->userName = $user->name;
+        $newBeer->date = time();
+        $newBeer->gameId = $resultStorage->getNextGameId();
+        $beerStorage->addBeer($newBeer);
+        $data['text'] = 'Your current beers status is - ' . $beerStorage->getBeerStatus($user->id);
+        $api->sendMessage($data);
+        sendAvailableCommands($isAdmin, $data);
+        die();
+    }
+    if ($text === COMMAND_BEER_REMOVE) {
+        $beerStorage->removeBeer($senderId);
+        $data['text'] = 'Your current beers status is - ' . $beerStorage->getBeerStatus($senderId);
+        $api->sendMessage($data);
+        sendAvailableCommands($isAdmin, $data);
+        die();
+    }
+    if ($text === COMMAND_BEER_STATUS) {
+        $data['text'] = 'Your current beers status is - ' . $beerStorage->getBeerStatus($senderId);
+        $api->sendMessage($data);
+        sendAvailableCommands($isAdmin, $data);
+        die();
     }
     if ($text === COMMAND_ADMINS) {
         $text = 'Admins: ';
@@ -704,6 +718,16 @@ function getCommandButtons(array $commands): array
     $count = count($commands);
 
     foreach ($commands as $command) {
+        $color = "#665CAC";
+        if ($command === COMMAND_BEER_ADD) {
+            $color = "#54C0D4";
+        }
+        if ($command === COMMAND_BEER_REMOVE) {
+            $color = "#EF6062";
+        }
+        if ($command === COMMAND_BEER_STATUS) {
+            $color = "#F4EF7B";
+        }
         $button = [
             "Text" => "<font color='#FFFFFF' size='22'>{$command}</font>",
             "TextHAlign" => "center",
@@ -711,8 +735,8 @@ function getCommandButtons(array $commands): array
             "ActionType" => "reply",
             "TextSize" => "large",
             "ActionBody" => $command,
-            "BgColor" => "#665CAC",
-            "Columns" => 3
+            "BgColor" => $color,
+            "Columns" => $command === COMMAND_BEER_STATUS ? 6 : 3
         ];
 //        if ($count > 24) {
 //            $button['Columns'] = 3;

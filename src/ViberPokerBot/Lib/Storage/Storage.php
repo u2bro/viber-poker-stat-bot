@@ -20,4 +20,9 @@ abstract class Storage
     {
         return array_values((array)@json_decode(file_get_contents($this->getFilePath(), true)));
     }
+
+    protected function storeDataToFile(array $data): void
+    {
+        file_put_contents($this->getFilePath(), json_encode($data, JSON_THROW_ON_ERROR));
+    }
 }
