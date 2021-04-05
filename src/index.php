@@ -43,6 +43,21 @@ usort($personResults, function ($a, $b) {
 });
 $personResults = array_values($personResults);
 
+$games = [];
+foreach ($resultStorage->getAll() as $result) {
+    if (!empty($games[$result->gameId])) {
+        $games[$result->gameId][$result->place] = $result->userName;
+        continue;
+    }
+    $games[$result->gameId][$result->place] = $result->userName;
+    $games[$result->gameId]['gameId'] = $result->gameId;
+    $games[$result->gameId]['date'] = $result->date;
+}
+
+usort($games, function ($a, $b) {
+    return $b['gameId'] <=> $a['gameId'];
+});
+
 ?>
 
 <!DOCTYPE html>
@@ -124,6 +139,34 @@ $personResults = array_values($personResults);
                                         <li>First place: <?php echo $personResult[1] ?? 0?></li>
                                         <li>Second place: <?php echo $personResult[2] ?? 0?></li>
                                         <li>Third place: <?php echo $personResult[3] ?? 0?></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <?php } ?>
+            </div>
+        </div>
+        <div class="tile is-ancestor">
+            <div class="tile is-12 is-parent is-flex-wrap-wrap">
+                <div class="tile is-12 is-parent">
+                    <p class="title">Games</p>
+                </div>
+                <?php foreach ($games as $game) { ?>
+                    <div class="tile is-3 is-parent">
+                        <div class="card">
+                            <div class="card-content">
+                                <div class="media" style="align-items: center;">
+                                    <div class="media-content">
+                                        <p class="title is-5"><?php echo  'Game ' . $game['gameId'] . ' ' . date("Y-m-d H:i", (int)$game['date']) ?></p>
+                                    </div>
+                                </div>
+
+                                <div class="content">
+                                    <ul>
+                                        <li>First place: <?php echo ($game[1] ?? '') ?></li>
+                                        <li>Second place: <?php echo ($game[2] ?? '') ?></li>
+                                        <li>Third place: <?php echo ($game[3] ?? '') ?></li>
                                     </ul>
                                 </div>
                             </div>
