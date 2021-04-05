@@ -68,7 +68,7 @@ const STICKER_IDS_WIN = [
 
 DotEnv::load(__DIR__ . '/../../config/.env');
 
-if (!str_starts_with($_SERVER['HTTP_USER_AGENT'], 'akka-http')) {
+if (!empty($_SERVER['HTTP_USER_AGENT'])) {
     $resultStorage = ResultStorage::getInstance();
     $results = [];
     foreach ($resultStorage->getAll() as $result) {
