@@ -236,38 +236,44 @@ if ($input['event'] === 'webhook') {
                     $result->gameId = $gameId;
                     $resultStorage->addResult($result);
                 }
-                $userIds = $userStorage->getUserIds();
-                if (($key = array_search($senderId, $userIds)) !== false) {
-                    unset($userIds[$key]);
-                }
-                $userIds = array_values($userIds);
 
-                if ($place === 1) {
-                    $dataB['type'] = 'sticker';
-                    $dataB['sticker_id'] = STICKER_IDS_WIN[array_rand(STICKER_IDS_WIN)];
-                    $dataB['broadcast_list'] = $userIds;
-                    $dataB['sender']['name'] = 'bot';
-                    $api->broadcastMessage($dataB);
-                    $dataF['type'] = 'text';
-                    $dataF['broadcast_list'] = $userIds;
-                    $dataF['text'] = "Game over. Congratulations to the winners!";
-                    $dataF['sender']['name'] = 'bot';
-                    $api->broadcastMessage($dataF);
-                }
+//                if ($place === 1) {
+//                    $dataB['type'] = 'sticker';
+//                    $dataB['sticker_id'] = STICKER_IDS_WIN[array_rand(STICKER_IDS_WIN)];
+//                    $dataB['broadcast_list'] = $userIds;
+//                    $dataB['sender']['name'] = 'bot';
+//                    $api->broadcastMessage($dataB);
+//                    $dataF['type'] = 'text';
+//                    $dataF['broadcast_list'] = $userIds;
+//                    $dataF['text'] = "Game over. Congratulations to the winners!";
+//                    $dataF['sender']['name'] = 'bot';
+//                    $api->broadcastMessage($dataF);
+//                }
 
 
-                $dataC['type'] = 'text';
-                $dataC['broadcast_list'] = $userIds;
-                $dataC['text'] = "{$place} place: " . ($user->name ?? 'none');
-                $dataC['sender']['name'] = 'bot';
-                if ($user) {
-                    $dataC['sender']['avatar'] = $user->avatar ?? EMPTY_AVATAR_URL;
-                }
-                $api->broadcastMessage($dataC);
+//                $dataC['type'] = 'text';
+//                $dataC['broadcast_list'] = $userIds;
+//                $dataC['text'] = "{$place} place: " . ($user->name ?? 'none');
+//                $dataC['sender']['name'] = 'bot';
+//                if ($user) {
+//                    $dataC['sender']['avatar'] = $user->avatar ?? EMPTY_AVATAR_URL;
+//                }
+//                $api->broadcastMessage($dataC);
 
+                $excludeIds[] = $setId;
                 if ($place === 3) {
-                    $data['text'] = "Done!";
-                    $api->sendMessage($data);
+                    $winners = [];
+                    foreach ($excludeIds as $winnerId){
+                        $winners[] = $userStorage->getUser($winnerId);
+                    }
+                    $dataF['type'] = 'text';
+                    $dataF['broadcast_list'] = $userStorage->getUserIds();
+                    $dataF['sender']['name'] = 'bot';
+                    $dataF['text'] = "Game over. Congratulations to the winners!" . PHP_EOL;
+                    foreach ($winners as $key => $winner){
+                        $dataF['text'] .= ($key + 1) . ' place: ' . ($winner->name ?? 'none') . PHP_EOL;
+                    }
+                    $api->broadcastMessage($dataF);
                     sendAvailableCommands($isAdmin, $data);
                     die();
                 }
@@ -275,7 +281,6 @@ if ($input['event'] === 'webhook') {
                 $data['text'] = "Set {$nextStep} place.";
                 $data['keyboard']['Type'] = 'keyboard';
                 $data['keyboard']['InputFieldState'] = 'hidden';
-                $excludeIds[] = $setId;
                 $data['keyboard']['Buttons'] = getSetButtons($excludeIds);
                 $data['tracking_data'] = TRACK_SET . TRACK_SEPARATOR_GAME_ID . $gameId . TRACK_SEPARATOR_USER_ID . implode(TRACK_SEPARATOR_USER_ID, $excludeIds);
                 $api->sendMessage($data);
