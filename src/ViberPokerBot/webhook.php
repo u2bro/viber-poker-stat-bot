@@ -64,6 +64,8 @@ const COMMANDS_REGULAR = [
 //    COMMAND_ADMINS,
 ];
 
+const DEFAULT_STAT_LIMIT = 5;
+
 const POINTS = [
     1 => 5,
     2 => 3,
@@ -446,8 +448,6 @@ if ($input['event'] === 'webhook') {
         die();
     }
     if ($text === COMMAND_STAT) {
-        $data['text'] = 'Full stat: ';
-        $api->sendMessage($data);
         $results = [];
         foreach ($resultStorage->getAll() as $result) {
             if (!empty($results[$result->userId]['score'])) {
@@ -467,6 +467,7 @@ if ($input['event'] === 'webhook') {
             return $b['score'] <=> $a['score'];
         });
 
+        $results = array_slice($results, 0, 20);
         foreach ($results as $result) {
             $user = $userStorage->getUser($result['userId']);
             if (!$user) {
@@ -480,8 +481,6 @@ if ($input['event'] === 'webhook') {
         die();
     }
     if ($text === COMMAND_WIN) {
-        $data['text'] = 'Wins stat: ';
-        $api->sendMessage($data);
         $results = [];
         foreach ($resultStorage->getAll() as $result) {
             if ($result->place !== 1) {
@@ -504,6 +503,7 @@ if ($input['event'] === 'webhook') {
             return $b['score'] <=> $a['score'];
         });
 
+        $results = array_slice($results, 0, DEFAULT_STAT_LIMIT);
         foreach ($results as $result) {
             $user = $userStorage->getUser($result['userId']);
             if (!$user) {
@@ -517,8 +517,6 @@ if ($input['event'] === 'webhook') {
         die();
     }
     if ($text === COMMAND_RESULTS || $text === COMMAND_RESULT) {
-        $data['text'] = 'Results: ';
-        $api->sendMessage($data);
         $results = [];
         foreach ($resultStorage->getAll() as $result) {
             if (!empty($results[$result->userId][$result->place])) {
@@ -538,6 +536,7 @@ if ($input['event'] === 'webhook') {
             return ($b[1] ?? 0) <=> ($a[1] ?? 0);
         });
 
+        $results = array_slice($results, 0, DEFAULT_STAT_LIMIT);
         foreach ($results as $result) {
             $user = $userStorage->getUser($result['userId']);
             if (!$user) {
@@ -551,8 +550,6 @@ if ($input['event'] === 'webhook') {
         die();
     }
     if ($text === COMMAND_GAMES) {
-        $data['text'] = 'Games stat: ';
-        $api->sendMessage($data);
         $games = [];
         foreach ($resultStorage->getAll() as $result) {
             if (!empty($games[$result->gameId])) {
@@ -572,6 +569,7 @@ if ($input['event'] === 'webhook') {
             return $b['gameId'] <=> $a['gameId'];
         });
 
+        $games = array_slice($games,0, DEFAULT_STAT_LIMIT);
         foreach ($games as $game) {
             $data['text'] = 'Game ' . $game['gameId'] . ' ' . date("Y-m-d H:i", (int)$game['date']) . "\n 1 place: " . ($game[1] ?? '') . "\n 2 place: " . ($game[2] ?? '') . "\n 3 place: " . ($game[3] ?? '');
             $api->sendMessage($data);
@@ -592,7 +590,7 @@ function sendAvailableCommands($isAdmin, $data)
         $commands = array_merge($commands, COMMANDS_ADMIN);
     }
 
-    $data['text'] = "Chose command";
+    $data['text'] = 'Full stat see in ' . getenv('WEB_PAGE_URL');
     $data['keyboard']['Type'] = 'keyboard';
     $data['keyboard']['InputFieldState'] = 'hidden';
     $data['keyboard']['Buttons'] = getCommandButtons($commands);
