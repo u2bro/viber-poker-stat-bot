@@ -467,7 +467,6 @@ if ($input['event'] === 'webhook') {
             return $b['score'] <=> $a['score'];
         });
 
-        $results = array_slice($results, 0, 20);
         foreach ($results as $result) {
             $user = $userStorage->getUser($result['userId']);
             if (!$user) {
@@ -503,7 +502,6 @@ if ($input['event'] === 'webhook') {
             return $b['score'] <=> $a['score'];
         });
 
-        $results = array_slice($results, 0, DEFAULT_STAT_LIMIT);
         foreach ($results as $result) {
             $user = $userStorage->getUser($result['userId']);
             if (!$user) {
@@ -536,7 +534,6 @@ if ($input['event'] === 'webhook') {
             return ($b[1] ?? 0) <=> ($a[1] ?? 0);
         });
 
-        $results = array_slice($results, 0, DEFAULT_STAT_LIMIT);
         foreach ($results as $result) {
             $user = $userStorage->getUser($result['userId']);
             if (!$user) {
