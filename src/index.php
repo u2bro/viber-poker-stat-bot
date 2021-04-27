@@ -2,9 +2,11 @@
 
 use ViberPokerBot\Lib\Storage\ResultStorage;
 use ViberPokerBot\Lib\Storage\UserStorage;
+use ViberPokerBot\Lib\DotEnv;
 
 require_once __DIR__ . '/ViberPokerBot/Lib/Storage/ResultStorage.php';
 require_once __DIR__ . '/ViberPokerBot/Lib/Storage/UserStorage.php';
+require_once __DIR__ . '/ViberPokerBot/Lib/DotEnv.php';
 
 //const EMPTY_AVATAR_URL = 'https://www.viber.com/app/uploads/s3.jpg';
 const EMPTY_AVATAR_URL = 'https://invite.viber.com/assets/g2-chat/images/generic-avatar.jpg';
@@ -14,6 +16,8 @@ const POINTS = [
     2 => 3,
     3 => 2
 ];
+
+DotEnv::load(__DIR__ . '/../config/.env');
 
 $resultStorage = ResultStorage::getInstance();
 $userStorage = UserStorage::getInstance();
@@ -58,6 +62,7 @@ usort($games, function ($a, $b) {
     return $b['gameId'] <=> $a['gameId'];
 });
 
+header("X-Robots-Tag: noindex, nofollow", true);
 ?>
 
 <!DOCTYPE html>
@@ -67,6 +72,25 @@ usort($games, function ($a, $b) {
     <title>Poker Uzh</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.2/css/bulma.min.css">
+    <meta name="robots" content="noindex">
+    <meta name="googlebot" content="noindex">
+
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Poker Uzh">
+    <meta property="og:title" content="Poker Uzh">
+    <meta property="og:description" content="Poker Uzh statistics">
+    <meta property="og:url" content="https://<?php echo getenv('WEB_PAGE_URL') ?>">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:image" content="https://dl-media.viber.com/1/share/2/long/vibes/icon/image/0x0/a925/a9836e54625056f9616c448b66fb75a919fcae6fc9011e02d1b3ee607bf1a925.jpg">
+    <meta property="og:image:width" content="500">
+    <meta property="og:image:height" content="500">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Poker Uzh">
+    <meta name="twitter:description" content="Poker Uzh statistics">
+    <meta name="twitter:image:src" content="https://dl-media.viber.com/1/share/2/long/vibes/icon/image/0x0/a925/a9836e54625056f9616c448b66fb75a919fcae6fc9011e02d1b3ee607bf1a925.jpg">
+    <meta name="twitter:url" content="https://<?php echo getenv('WEB_PAGE_URL') ?>">
+    <meta name="twitter:domain" content="<?php echo getenv('WEB_PAGE_URL') ?>">
 </head>
 <body>
 
