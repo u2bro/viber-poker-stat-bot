@@ -184,6 +184,19 @@ if ($input['event'] === 'webhook') {
             $api->sendMessage($data);
             die();
         }
+        if ($text === 'skip' && str_starts_with($track, TRACK_SET)) {
+            $excludeIds = explode(TRACK_SEPARATOR_USER_ID, $track);
+            $gameId = (int)(explode(TRACK_SEPARATOR_GAME_ID, $track)[1] ?? 0);
+            unset($excludeIds[0]);
+
+            if ($gameId) {
+                $resultStorage->removeResultsByGameId($gameId);
+            }
+            $data['text'] = 'Setting is skiped.';
+            $api->sendMessage($data);
+            sendAvailableCommands($isAdmin, $data);
+            die();
+        }
         if ($text !== 'skip' && str_starts_with($track, TRACK_SET)) {
             $setId = $input['message']['text'] ?? '';
             $excludeIds = explode(TRACK_SEPARATOR_USER_ID, $track);

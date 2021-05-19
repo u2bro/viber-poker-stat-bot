@@ -59,4 +59,16 @@ class ResultStorage extends Storage
         }
         return $results;
     }
+
+    public function removeResultsByGameId(int $gameId)
+    {
+        $results = [];
+        foreach ($this->getAll() as $result) {
+            if ((int)$result->gameId !== $gameId) {
+                $results[] = $result;
+            }
+        }
+
+        $this->storeDataToFile($results);
+    }
 }
