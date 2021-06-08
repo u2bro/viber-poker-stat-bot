@@ -164,6 +164,7 @@ if ($input['event'] === 'webhook') {
     jsonResponse($data);
     die();
 } elseif ($input['event'] === "message") {
+    closeConnection();
     $text = lcfirst($input['message']['text'] ?? '');
     $track = $input['message']['tracking_data'] ?? '';
     $senderId = $input['sender']['id'] ?? null;
@@ -759,6 +760,17 @@ function getCommandButtons(array $commands): array
     }
 
     return $buttons;
+}
+
+function closeConnection()
+{
+    set_time_limit(0);
+    ob_start();
+    echo ' ';
+    header('Connection: close');
+    header('Content-Length: '.ob_get_length());
+    ob_end_flush();
+    flush();
 }
 
 //"subscribed",
