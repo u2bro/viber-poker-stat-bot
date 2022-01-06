@@ -183,11 +183,12 @@ if ($input['event'] === 'webhook') {
     $data['min_api_version'] = 1;
     if ($isAdmin) {
         if ($text === COMMAND_PARTICIPANTS_DONE) {
+            $nextGameId = $resultStorage->getNextGameId();
             $data['text'] = "Set 1 place.";
             $data['keyboard']['Type'] = 'keyboard';
             $data['keyboard']['InputFieldState'] = 'hidden';
-            $data['keyboard']['Buttons'] = getSetButtons();
-            $data['tracking_data'] = TRACK_SET . TRACK_SEPARATOR_GAME_ID . $resultStorage->getNextGameId();
+            $data['keyboard']['Buttons'] = getSetButtons([], false, $nextGameId);
+            $data['tracking_data'] = TRACK_SET . TRACK_SEPARATOR_GAME_ID . $nextGameId;
             $api->sendMessage($data);
             die();
         }
@@ -331,7 +332,7 @@ if ($input['event'] === 'webhook') {
                 $data['text'] = "Set {$nextStep} place.";
                 $data['keyboard']['Type'] = 'keyboard';
                 $data['keyboard']['InputFieldState'] = 'hidden';
-                $data['keyboard']['Buttons'] = getSetButtons($excludeIds);
+                $data['keyboard']['Buttons'] = getSetButtons($excludeIds, false, $gameId);
                 $data['tracking_data'] = TRACK_SET . TRACK_SEPARATOR_GAME_ID . $gameId . TRACK_SEPARATOR_USER_ID . implode(TRACK_SEPARATOR_USER_ID, $excludeIds);
                 $api->sendMessage($data);
                 die();
@@ -685,11 +686,11 @@ function getSupperAdminId(): ?string
     return $dataApp->members[0]->id ?? null;
 }
 
-function getSetButtons(array $excludeIds = [], bool $isParticipants = false): array
+function getSetButtons(array $excludeIds = [], bool $isParticipants = false, $gameId = null): array
 {
     $buttons = [];
-    $userStorage = UserStorage::getInstance();
-    $users = $userStorage->getAll();
+    $gamesStorage = GamesStorage::getInstance();
+    $users = $gamesStorage->getUsersByGameId($gameId);
     if ($excludeIds) {
         $users = array_filter($users, function ($element) use ($excludeIds) {
             return !in_array($element->id, $excludeIds, true);
