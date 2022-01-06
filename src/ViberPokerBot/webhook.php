@@ -720,7 +720,7 @@ function getSetButtons(array $excludeIds = [], bool $isParticipants = false, $ga
         "BgColor" => "#665CAC",
         "Columns" => 6
     ];
-    $buttonName = $isParticipants ? "That's all" : "Dont remember";
+    $buttonName = $isParticipants ? "That's all" : "Don't remember";
     $buttonNone = [
         "Text" => "<font color='#FFFFFF' size='22'>" . $buttonName . "</font>",
         "TextHAlign" => "center",
