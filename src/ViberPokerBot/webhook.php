@@ -184,6 +184,15 @@ if ($input['event'] === 'webhook') {
     if ($isAdmin) {
         if ($text === COMMAND_PARTICIPANTS_DONE) {
             $nextGameId = $resultStorage->getNextGameId();
+            $gameParticipants = $gamesStorage->getUsersByGameId($nextGameId);
+            if (!$gameParticipants || count($gameParticipants) < 5) {
+                $resultStorage->removeResultsByGameId($nextGameId);
+                $gamesStorage->removeByGameId($nextGameId);
+                $data['text'] = "*Error* : minimum participants for game = 5";
+                $api->sendMessage($data);
+                sendAvailableCommands($isAdmin, $data);
+                die();
+            }
             $data['text'] = "Set 1 place.";
             $data['keyboard']['Type'] = 'keyboard';
             $data['keyboard']['InputFieldState'] = 'hidden';
