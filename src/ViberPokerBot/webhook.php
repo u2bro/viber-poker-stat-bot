@@ -14,6 +14,7 @@ require_once __DIR__ . '/Lib/DotEnv.php';
 require_once __DIR__ . '/Lib/Storage/BeerStorage.php';
 require_once __DIR__ . '/Lib/Storage/ResultStorage.php';
 require_once __DIR__ . '/Lib/Storage/UserStorage.php';
+require_once __DIR__ . '/Lib/Storage/GamesStorage.php';
 require_once __DIR__ . '/Lib/Logger.php';
 require_once __DIR__ . '/Lib/ViberAPI.php';
 
@@ -199,7 +200,7 @@ if ($input['event'] === 'webhook') {
             $api->sendMessage($data);
             die();
         }
-        if ($text === 'skip' && (str_starts_with($track, TRACK_SET)) || str_starts_with($track, TRACK_PARTICIPANTS)) {
+        if ($text === 'skip' && (str_starts_with($track, TRACK_SET) || str_starts_with($track, TRACK_PARTICIPANTS))) {
             $excludeIds = explode(TRACK_SEPARATOR_USER_ID, $track);
             $gameId = (int)(explode(TRACK_SEPARATOR_GAME_ID, $track)[1] ?? 0);
             unset($excludeIds[0]);
@@ -709,8 +710,9 @@ function getSetButtons(array $excludeIds = [], bool $isParticipants = false): ar
         "BgColor" => "#665CAC",
         "Columns" => 6
     ];
+    $buttonName = $isParticipants ? "That's all" : "Dont remember";
     $buttonNone = [
-        "Text" => "<font color='#FFFFFF' size='22'>" . $isParticipants ? "That's all" : "Dont remember" . "</font>",
+        "Text" => "<font color='#FFFFFF' size='22'>" . $buttonName . "</font>",
         "TextHAlign" => "center",
         "TextVAlign" => "middle",
         "ActionType" => "reply",
@@ -726,6 +728,9 @@ function getSetButtons(array $excludeIds = [], bool $isParticipants = false): ar
     } elseif ($count > 72) {
         $buttonNone['Columns'] = $buttonSkip['Columns'] = 1;
     }
+
+    $buttons[] = $buttonSkip;
+    $buttons[] = $buttonNone;
 
     foreach ($users as $user) {
         $buttonImage = [
