@@ -5,6 +5,7 @@ namespace ViberPokerBot;
 use ViberPokerBot\Lib\DotEnv;
 use ViberPokerBot\Lib\Logger;
 use ViberPokerBot\Lib\Storage\BeerStorage;
+use ViberPokerBot\Lib\Storage\GamesStorage;
 use ViberPokerBot\Lib\Storage\ResultStorage;
 use ViberPokerBot\Lib\Storage\UserStorage;
 use ViberPokerBot\Lib\ViberAPI;
@@ -20,6 +21,7 @@ const EMPTY_AVATAR_URL = 'https://invite.viber.com/assets/g2-chat/images/generic
 
 const TRACK_SUBSCRIBE = 'subscribe';
 const TRACK_SET = 'set';
+const TRACK_PARTICIPANTS = 'set-participants';
 const TRACK_BROADCAST = 'broadcast';
 const TRACK_SEPARATOR_GAME_ID = '--';
 const TRACK_SEPARATOR_USER_ID = '::';
@@ -42,6 +44,7 @@ const COMMAND_USERS_SUB = 'users-sub';
 const COMMAND_BEER_ADD = 'beer-add';
 const COMMAND_BEER_REMOVE = 'beer-remove';
 const COMMAND_BEER_STATUS = 'beer-status';
+const COMMAND_PARTICIPANTS_DONE = 'participants-done';
 
 const COMMANDS_ADMIN = [
     COMMAND_SET,
@@ -96,6 +99,8 @@ Logger::log(($_SERVER ? 'Server: ' . json_encode($_SERVER) . PHP_EOL : '')
 $userStorage = UserStorage::getInstance();
 /** @var ResultStorage $resultStorage */
 $resultStorage = ResultStorage::getInstance();
+/** @var GamesStorage $gamesStorage */
+$gamesStorage = GamesStorage::getInstance();
 /** @var BeerStorage $beerStorage */
 $beerStorage = BeerStorage::getInstance();
 $api = new ViberAPI();
@@ -176,7 +181,7 @@ if ($input['event'] === 'webhook') {
     $data['tracking_data'] = 'tracking_data';
     $data['min_api_version'] = 1;
     if ($isAdmin) {
-        if ($text === COMMAND_SET) {
+        if ($text === COMMAND_PARTICIPANTS_DONE) {
             $data['text'] = "Set 1 place.";
             $data['keyboard']['Type'] = 'keyboard';
             $data['keyboard']['InputFieldState'] = 'hidden';
@@ -185,17 +190,60 @@ if ($input['event'] === 'webhook') {
             $api->sendMessage($data);
             die();
         }
-        if ($text === 'skip' && str_starts_with($track, TRACK_SET)) {
+        if ($text === COMMAND_SET) {
+            $data['text'] = "Add participants.";
+            $data['keyboard']['Type'] = 'keyboard';
+            $data['keyboard']['InputFieldState'] = 'hidden';
+            $data['keyboard']['Buttons'] = getSetButtons([], true);
+            $data['tracking_data'] = TRACK_PARTICIPANTS . TRACK_SEPARATOR_GAME_ID . $resultStorage->getNextGameId();
+            $api->sendMessage($data);
+            die();
+        }
+        if ($text === 'skip' && (str_starts_with($track, TRACK_SET)) || str_starts_with($track, TRACK_PARTICIPANTS)) {
             $excludeIds = explode(TRACK_SEPARATOR_USER_ID, $track);
             $gameId = (int)(explode(TRACK_SEPARATOR_GAME_ID, $track)[1] ?? 0);
             unset($excludeIds[0]);
 
             if ($gameId) {
                 $resultStorage->removeResultsByGameId($gameId);
+                $gamesStorage->removeByGameId($gameId);
             }
             $data['text'] = 'Setting is skiped.';
             $api->sendMessage($data);
             sendAvailableCommands($isAdmin, $data);
+            die();
+        }
+        if ($text !== 'skip' && str_starts_with($track, TRACK_PARTICIPANTS)) {
+            $setId = $input['message']['text'] ?? '';
+            $excludeIds = explode(TRACK_SEPARATOR_USER_ID, $track);
+            $gameId = (int)(explode(TRACK_SEPARATOR_GAME_ID, $track)[1] ?? 0);
+            unset($excludeIds[0]);
+            $user = $userStorage->getUser($setId);
+            if (!$user && $setId !== 'none') {
+                $data['text'] = "*Error* : user with id {$setId} not found";
+                $api->sendMessage($data);
+                sendAvailableCommands($isAdmin, $data);
+                die();
+            }
+
+            if ($user) {
+                $result = new \stdClass();
+                $result->userIds = [$user->id];
+                $result->userNames = [$user->name];
+                $result->adminId = $senderId;
+                $result->adminName = $input['sender']['name'] ?? '';
+                $result->date = time();
+                $result->gameId = $gameId;
+                $gamesStorage->addGame($result);
+            }
+            $excludeIds[] = $setId;
+
+            $data['text'] = "Add participants.";
+            $data['keyboard']['Type'] = 'keyboard';
+            $data['keyboard']['InputFieldState'] = 'hidden';
+            $data['keyboard']['Buttons'] = getSetButtons($excludeIds, true);
+            $data['tracking_data'] = TRACK_PARTICIPANTS . TRACK_SEPARATOR_GAME_ID . $gameId . TRACK_SEPARATOR_USER_ID . implode(TRACK_SEPARATOR_USER_ID, $excludeIds);
+            $api->sendMessage($data);
             die();
         }
         if ($text !== 'skip' && str_starts_with($track, TRACK_SET)) {
@@ -636,7 +684,7 @@ function getSupperAdminId(): ?string
     return $dataApp->members[0]->id ?? null;
 }
 
-function getSetButtons(array $excludeIds = []): array
+function getSetButtons(array $excludeIds = [], bool $isParticipants = false): array
 {
     $buttons = [];
     $userStorage = UserStorage::getInstance();
@@ -662,12 +710,12 @@ function getSetButtons(array $excludeIds = []): array
         "Columns" => 6
     ];
     $buttonNone = [
-        "Text" => "<font color='#FFFFFF' size='22'>Dont remember</font>",
+        "Text" => "<font color='#FFFFFF' size='22'>" . $isParticipants ? "That's all" : "Dont remember" . "</font>",
         "TextHAlign" => "center",
         "TextVAlign" => "middle",
         "ActionType" => "reply",
         "TextSize" => "large",
-        "ActionBody" => 'none',
+        "ActionBody" => $isParticipants ? COMMAND_PARTICIPANTS_DONE : 'none',
         "BgColor" => "#665CAC",
         "Columns" => 6
     ];
@@ -678,8 +726,6 @@ function getSetButtons(array $excludeIds = []): array
     } elseif ($count > 72) {
         $buttonNone['Columns'] = $buttonSkip['Columns'] = 1;
     }
-    $buttons[] = $buttonSkip;
-    $buttons[] = $buttonNone;
 
     foreach ($users as $user) {
         $buttonImage = [
