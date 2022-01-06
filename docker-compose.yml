@@ -8,6 +8,7 @@ services:
       - "./data:/var/www/data"
       - "./config:/var/www/config"
       - "./log:/var/www/log"
+      - ./php.ini:/usr/local/etc/php/php.ini
     ports:
-      - "80:80"
-      - "443:443"
+      - "8066:80"
+      - "8443:443"
