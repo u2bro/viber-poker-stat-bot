@@ -46,6 +46,7 @@ const COMMAND_BEER_ADD = 'beer-add';
 const COMMAND_BEER_REMOVE = 'beer-remove';
 const COMMAND_BEER_STATUS = 'beer-status';
 const COMMAND_PARTICIPANTS_DONE = 'participants-done';
+const COMMAND_ATTENDANCE = 'attendance';
 
 const COMMANDS_ADMIN = [
     COMMAND_SET,
@@ -64,6 +65,7 @@ const COMMANDS_REGULAR = [
     COMMAND_WIN,
     COMMAND_RESULTS,
     COMMAND_GAMES,
+    COMMAND_ATTENDANCE,
 //    COMMAND_USERS,
 //    COMMAND_ADMINS,
 ];
@@ -644,6 +646,41 @@ if ($input['event'] === 'webhook') {
             $data['text'] = 'Game ' . $game['gameId'] . ' ' . date("Y-m-d H:i", (int)$game['date']) . "\n 1 place: " . ($game[1] ?? '') . "\n 2 place: " . ($game[2] ?? '') . "\n 3 place: " . ($game[3] ?? '');
             $api->sendMessage($data);
         }
+        sendAvailableCommands($isAdmin, $data);
+        die();
+    }
+
+    if ($text === COMMAND_ATTENDANCE) {
+        $games = $gamesStorage->getAll();
+        $stat = [];
+        $totalGamesCount = count($games);
+        foreach ($games as $game) {
+            foreach ($userStorage->getAll() as $key => $user) {
+                if (!array_key_exists($user->id, $stat)) {
+                    $stat[$user->id]['games'] = 0;
+                    $stat[$user->id]['avatar'] = $user->avatar;
+                    $stat[$user->id]['name'] = $user->name;
+                }
+
+                if (in_array($user->id, $game->userIds)) {
+                    $stat[$user->id]['games']++;
+                }
+            }
+        }
+        if (!$stat) {
+            $data['text'] = 'Stat is empty yet.';
+            $api->sendMessage($data);
+        }
+        usort($stat, function ($a, $b) {
+            return $b['games'] <=> $a['games'];
+        });
+
+        foreach ($stat as $user) {
+            $data['sender']['avatar'] = $user['avatar'] ?? EMPTY_AVATAR_URL;
+            $data['text'] = $user['name'] . ' - ' . round($user['games']/$totalGamesCount*100, 2) . '% (' . $user['games'] . ' / ' . $totalGamesCount . ' total)';
+            $api->sendMessage($data);
+        }
+
         sendAvailableCommands($isAdmin, $data);
         die();
     }
